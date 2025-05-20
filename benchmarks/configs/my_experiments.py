@@ -12,6 +12,7 @@ import os
 from dataclasses import asdict
 
 import numpy as np
+import wandb
 
 from benchmarks.configs.defaults import (
     default_all_noisy_sensor_module,
@@ -27,7 +28,6 @@ from benchmarks.configs.ycb_experiments import (
     default_all_noisy_surf_agent_sensor_module,
 )
 from tbp.monty.frameworks.config_utils.config_args import (
-    LoggingConfig,
     MontyArgs,
     MotorSystemConfigCurInformedSurfaceGoalStateDriven,
     MotorSystemConfigInformedNoTransStepS20,
@@ -55,6 +55,11 @@ from tbp.monty.frameworks.environments.everything_is_awesome import (
 )
 from tbp.monty.frameworks.experiments.everything_is_awesome import (
     EverythingIsAwesomeExperiment,
+)
+from tbp.monty.frameworks.loggers.monty_handlers import (
+    BasicCSVStatsHandler,
+    DetailedJSONHandler,
+    ReproduceEpisodeHandler,
 )
 from tbp.monty.frameworks.models.evidence_matching import (
     EvidenceGraphLM,
@@ -214,13 +219,32 @@ everything_is_awesome_eval = dict(
         do_train=False,
         do_eval=True,
         max_eval_steps=500,
+        max_train_steps=1000,
         max_total_steps=4 * 500,
         n_eval_epochs=1,
+        n_train_epochs=1,
         min_lms_match=1,
+        model_name_or_path="",
         seed=1337,
+        show_sensor_output=False,
     ),
-    logging_config=copy.deepcopy(LoggingConfig()).update(
+    logging_config=dict(
+        monty_log_level="DETAILED",
+        monty_handlers=[
+            BasicCSVStatsHandler,
+            DetailedJSONHandler,
+            ReproduceEpisodeHandler,
+        ],
+        wandb_handlers=[],
+        python_log_level="INFO",
+        python_log_to_file=True,
+        python_log_to_stdout=True,
         output_dir=os.path.join(monty_models_dir, "everything_is_awesome"),
+        run_name="",
+        resume_wandb_run=False,
+        wandb_id=wandb.util.generate_id(),
+        wandb_group="debugging",
+        log_parallel_wandb=False,
     ),
     monty_config=dict(
         monty_class=MontyForEvidenceGraphMatching,

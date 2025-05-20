@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Protocol, TypedDict, cast
+from typing import Protocol, TypedDict, Union, cast
 
 import numpy as np
 import Pyro5.api
@@ -78,7 +78,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
             rgb_server_uri: The URI of the rgb server.
         """
         self._actuator_server = cast(
-            ActuatorProtocol | ProprioceptionProtocol,
+            Union[ActuatorProtocol, ProprioceptionProtocol],
             Pyro5.api.Proxy(actuator_server_uri),
         )
         self._actuator = EverythingIsAwesomeActuator(
