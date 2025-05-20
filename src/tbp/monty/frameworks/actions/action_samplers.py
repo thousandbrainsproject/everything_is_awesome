@@ -43,8 +43,8 @@ __all__ = [
 ]
 
 
-class ActionSampler(ABC):
-    """Declares the interface for an abstract Action factory.
+class ActionSampler:
+    """Declares the interface for an Action factory.
 
     Used to generate Actions by sampling from a set of available action types.
     """
@@ -56,62 +56,6 @@ class ActionSampler(ABC):
         self._method_names = [
             f"sample_{action_name}" for action_name in self._action_names
         ]
-
-    @abstractmethod
-    def sample_look_down(self, agent_id: str) -> LookDown:
-        pass
-
-    @abstractmethod
-    def sample_look_up(self, agent_id: str) -> LookUp:
-        pass
-
-    @abstractmethod
-    def sample_move_forward(self, agent_id: str) -> MoveForward:
-        pass
-
-    @abstractmethod
-    def sample_move_tangentially(self, agent_id: str) -> MoveTangentially:
-        pass
-
-    @abstractmethod
-    def sample_orient_horizontal(self, agent_id: str) -> OrientHorizontal:
-        pass
-
-    @abstractmethod
-    def sample_orient_vertical(self, agent_id: str) -> OrientVertical:
-        pass
-
-    @abstractmethod
-    def sample_set_agent_pitch(self, agent_id: str) -> SetAgentPitch:
-        pass
-
-    @abstractmethod
-    def sample_set_agent_pose(self, agent_id: str) -> SetAgentPose:
-        pass
-
-    @abstractmethod
-    def sample_set_sensor_pitch(self, agent_id: str) -> SetSensorPitch:
-        pass
-
-    @abstractmethod
-    def sample_set_sensor_pose(self, agent_id: str) -> SetSensorPose:
-        pass
-
-    @abstractmethod
-    def sample_set_sensor_rotation(self, agent_id: str) -> SetSensorRotation:
-        pass
-
-    @abstractmethod
-    def sample_set_yaw(self, agent_id: str) -> SetYaw:
-        pass
-
-    @abstractmethod
-    def sample_turn_left(self, agent_id: str) -> TurnLeft:
-        pass
-
-    @abstractmethod
-    def sample_turn_right(self, agent_id: str) -> TurnRight:
-        pass
 
     def sample(self, agent_id: str) -> Action:
         """Sample a random action from the available action types.
