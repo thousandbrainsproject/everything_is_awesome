@@ -8,13 +8,12 @@
 # https://opensource.org/licenses/MIT.
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Protocol, TypedDict
 
 import numpy as np
 
 from tbp.monty.frameworks.actions.action_samplers import ActionSampler
 from tbp.monty.frameworks.actions.actions import Action
-from tbp.monty.frameworks.actions.actuator import Actuator
 from tbp.monty.frameworks.environments.embodied_data import EnvironmentDataLoader
 from tbp.monty.frameworks.environments.embodied_environment import (
     ActionSpace,
@@ -100,9 +99,14 @@ class EverythingIsAwesomeActionSampler(ActionSampler):
     def sample_translate_down(self, agent_id: str) -> TranslateDown:
         return TranslateDown(agent_id=agent_id, distance=1.0)
 
+class EverythingIsAwesomeActuator:
+    """Actuator for the Everything Is Awesome hackathon environment.
 
-class EverythingIsAwesomeActuator(Actuator):
-    """Actuator for the Everything Is Awesome hackathon environment."""
+    Note:
+        Actuators are use case specific, and don't need to implement all Actuator(ABC)
+        methods. In fact, the Actuator(ABC) should not be abstract, but concrete.
+        In its place, we will likely want to use a Protocol instead.
+    """
 
     def actuate_orbit_left(self, action: OrbitLeft) -> None:
         pass
@@ -116,56 +120,78 @@ class EverythingIsAwesomeActuator(Actuator):
     def actuate_translate_down(self, action: TranslateDown) -> None:
         pass
 
+class OrbitLeftActionSampler(Protocol):
+    def sample_orbit_left(self, agent_id: str) -> OrbitLeft: ...
+
+
+class OrbitLeftActuator(Protocol):
+    def actuate_orbit_left(self, action: OrbitLeft) -> None: ...
+
 
 class OrbitLeft(Action):
     """Orbit at current distance from target to the left."""
 
     @classmethod
-    def sample(
-        cls, agent_id: str, sampler: EverythingIsAwesomeActionSampler
-    ) -> OrbitLeft:
+    def sample(cls, agent_id: str, sampler: OrbitLeftActionSampler) -> OrbitLeft:
         return sampler.sample_orbit_left(agent_id)
 
     def __init__(self, agent_id: str, distance: float) -> None:
         super().__init__(agent_id=agent_id)
         self.distance = distance
 
-    def act(self, actuator: Actuator) -> None:
+    def act(self, actuator: OrbitLeftActuator) -> None:
         actuator.actuate_orbit_left(self)
+
+class OrbitRightActionSampler(Protocol):
+    def sample_orbit_right(self, agent_id: str) -> OrbitRight: ...
+
+
+class OrbitRightActuator(Protocol):
+    def actuate_orbit_right(self, action: OrbitRight) -> None: ...
 
 
 class OrbitRight(Action):
     """Orbit at current distance from target to the right."""
 
     @classmethod
-    def sample(
-        cls, agent_id: str, sampler: EverythingIsAwesomeActionSampler
-    ) -> OrbitRight:
+    def sample(cls, agent_id: str, sampler: OrbitRightActionSampler) -> OrbitRight:
         return sampler.sample_orbit_right(agent_id)
 
     def __init__(self, agent_id: str, distance: float) -> None:
         super().__init__(agent_id=agent_id)
         self.distance = distance
 
-    def act(self, actuator: Actuator) -> None:
+    def act(self, actuator: OrbitRightActuator) -> None:
         actuator.actuate_orbit_right(self)
+
+class TranslateUpActionSampler(Protocol):
+    def sample_translate_up(self, agent_id: str) -> TranslateUp: ...
+
+
+class TranslateUpActuator(Protocol):
+    def actuate_translate_up(self, action: TranslateUp) -> None: ...
 
 
 class TranslateUp(Action):
     """Translate up."""
 
     @classmethod
-    def sample(
-        cls, agent_id: str, sampler: EverythingIsAwesomeActionSampler
-    ) -> TranslateUp:
+    def sample(cls, agent_id: str, sampler: TranslateUpActionSampler) -> TranslateUp:
         return sampler.sample_translate_up(agent_id)
 
     def __init__(self, agent_id: str, distance: float) -> None:
         super().__init__(agent_id=agent_id)
         self.distance = distance
 
-    def act(self, actuator: Actuator) -> None:
+    def act(self, actuator: TranslateUpActuator) -> None:
         actuator.actuate_translate_up(self)
+
+class TranslateDownActionSampler(Protocol):
+    def sample_translate_down(self, agent_id: str) -> TranslateDown: ...
+
+
+class TranslateDownActuator(Protocol):
+    def actuate_translate_down(self, action: TranslateDown) -> None: ...
 
 
 class TranslateDown(Action):
@@ -173,7 +199,7 @@ class TranslateDown(Action):
 
     @classmethod
     def sample(
-        cls, agent_id: str, sampler: EverythingIsAwesomeActionSampler
+        cls, agent_id: str, sampler: TranslateDownActionSampler
     ) -> TranslateDown:
         return sampler.sample_translate_down(agent_id)
 
@@ -181,5 +207,5 @@ class TranslateDown(Action):
         super().__init__(agent_id=agent_id)
         self.distance = distance
 
-    def act(self, actuator: Actuator) -> None:
+    def act(self, actuator: TranslateDownActuator) -> None:
         actuator.actuate_translate_down(self)
