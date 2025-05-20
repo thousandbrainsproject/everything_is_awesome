@@ -115,7 +115,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
     def close(self):
         pass
 
-    def observations(self) -> EverythingIsAwesomeObservations:
+    def _observations(self) -> EverythingIsAwesomeObservations:
         rgb = self._sensor_server.rgb()
         depth = self._sensor_server.depth()
         # TODO: process observations and create rgba and correct depth
@@ -131,12 +131,13 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
 
     def step(self, action: Action) -> EverythingIsAwesomeObservations:
         action.act(self._actuator)
-        return self.observations()
+        return self._observations()
 
     def get_state(self) -> ProprioceptiveState:
         position = None
         rotation = None
         # TODO: request state from self._proprioception_server
+        #       and calculate position vector and rotation quaternion
         return ProprioceptiveState(
             agent_id_0=AgentState(
                 sensors=dict(
@@ -159,7 +160,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         self._actuator_server.run_to_position(motor=Motor.TRANSLATE, position=0.0)
         # TODO: Validate that the above code works as there are reports that it wouldn't
         #       See https://github.com/RaspberryPiFoundation/python-build-hat/issues/179
-        return self.observations()
+        return self._observations()
 
 
 class EverythingIsAwesomeDataLoader(EnvironmentDataLoader):
@@ -167,9 +168,9 @@ class EverythingIsAwesomeDataLoader(EnvironmentDataLoader):
 
     def pre_episode(self):
         super().pre_episode()
-        self.reset_agent()
+        self._reset_agent()
 
-    def reset_agent(self):
+    def _reset_agent(self):
         self._observation, proprioceptive_state = self.dataset.reset()
         self._motor_system_state = MotorSystemState(proprioceptive_state)
         self._counter = 0
@@ -361,12 +362,12 @@ class Motor(Enum):
 class ActuatorProtocol(Protocol):
     def run_for_degrees(self, motor: Motor, degrees: float) -> None: ...
     def run_for_rotations(self, motor: Motor, rotations: float) -> None: ...
-    def run_to_position(self, motor: Motor, position: float) -> None: ...
+    def run_to_position(self, motor: Motor, degrees: float) -> None: ...
 
 
 class SensorProtocol(Protocol):
-    def rgb(self) -> list[list[int]]: ...
-    def depth(self) -> list[list[int]]: ...
+    def rgb(self) -> list[list[list[int]]]: ...
+    def depth(self) -> list[list[list[int]]]: ...
 
 
 class ProprioceptionProtocol(Protocol):
