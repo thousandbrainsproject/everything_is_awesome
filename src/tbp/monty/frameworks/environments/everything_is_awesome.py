@@ -14,6 +14,7 @@ from typing import Protocol, TypedDict, cast
 
 import numpy as np
 import Pyro5.api
+from numpy.random import Generator
 
 from tbp.monty.frameworks.actions.action_samplers import ActionSampler
 from tbp.monty.frameworks.actions.actions import Action
@@ -60,16 +61,21 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
     """Everything Is Awesome hackathon environment."""
 
     def __init__(
-        self, actuator_server_uri: str, sensor_server_uri: str, pitch_diameter_r: float
+        self,
+        actuator_server_uri: str,
+        depth_server_uri: str,
+        pitch_diameter_r: float,
+        rgb_server_uri: str,
     ) -> None:
         """Initialize the Everything Is Awesome environment.
 
         Args:
             actuator_server_uri: The URI of the actuator server.
-            sensor_server_uri: The URI of the sensor server.
+            depth_server_uri: The URI of the depth server.
             pitch_diameter_r: The pitch diameter in units of radii. One radius is the
                 distance between the sensor and the center of the platform that the
                 robot can rotate around.
+            rgb_server_uri: The URI of the rgb server.
         """
         self._actuator_server = cast(
             ActuatorProtocol | ProprioceptionProtocol,
@@ -82,7 +88,8 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         self._proprioception_server = cast(
             ProprioceptionProtocol, self._actuator_server
         )
-        self._sensor_server = cast(SensorProtocol, Pyro5.api.Proxy(sensor_server_uri))
+        self._depth_server = cast(DepthProtocol, Pyro5.api.Proxy(depth_server_uri))
+        self._rgb_server = cast(RgbProtocol, Pyro5.api.Proxy(rgb_server_uri))
 
         orbit_speed = self._proprioception_server.speed(Motor.ORBIT)
         orbit_position = self._proprioception_server.position(Motor.ORBIT)
@@ -116,8 +123,8 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         pass
 
     def _observations(self) -> EverythingIsAwesomeObservations:
-        rgb = self._sensor_server.rgb()
-        depth = self._sensor_server.depth()
+        rgb = self._rgb_server.rgb()
+        depth = self._depth_server.depth()
         # TODO: process observations and create rgba and correct depth
         rgba = None
         return EverythingIsAwesomeObservations(
@@ -180,6 +187,17 @@ class EverythingIsAwesomeDataLoader(EnvironmentDataLoader):
 
 class EverythingIsAwesomeActionSampler(ActionSampler):
     """ActionSampler for the Everything Is Awesome hackathon environment."""
+
+    def __init__(self, rng: Generator = None) -> None:
+        super().__init__(
+            rng=rng,
+            actions=[
+                OrbitLeft,
+                OrbitRight,
+                TranslateUp,
+                TranslateDown,
+            ],
+        )
 
     def _sample_degrees(self) -> float:
         return self.rng.uniform(low=1.0, high=10.0)
@@ -365,10 +383,12 @@ class ActuatorProtocol(Protocol):
     def run_to_position(self, motor: Motor, degrees: float) -> None: ...
 
 
-class SensorProtocol(Protocol):
+class RgbProtocol(Protocol):
     def rgb(self) -> list[list[list[int]]]: ...
-    def depth(self) -> list[list[list[int]]]: ...
 
+
+class DepthProtocol(Protocol):
+    def depth(self) -> list[list[list[int]]]: ...
 
 class ProprioceptionProtocol(Protocol):
     def absolute_position(self, motor: Motor) -> int: ...

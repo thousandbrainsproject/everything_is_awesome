@@ -11,6 +11,8 @@ import copy
 import os
 from dataclasses import asdict
 
+import numpy as np
+
 from benchmarks.configs.defaults import (
     default_all_noisy_sensor_module,
     default_evidence_1lm_config,
@@ -25,6 +27,7 @@ from benchmarks.configs.ycb_experiments import (
     default_all_noisy_surf_agent_sensor_module,
 )
 from tbp.monty.frameworks.config_utils.config_args import (
+    LoggingConfig,
     MontyArgs,
     MotorSystemConfigCurInformedSurfaceGoalStateDriven,
     MotorSystemConfigInformedNoTransStepS20,
@@ -40,7 +43,30 @@ from tbp.monty.frameworks.config_utils.make_dataset_configs import (
     RandomRotationObjectInitializer,
     get_object_names_by_idx,
 )
-from tbp.monty.frameworks.models.sensor_modules import DetailedLoggingSM
+from tbp.monty.frameworks.environment_utils.transforms import (
+    DepthTo3DLocations,
+    MissingToMaxDepth,
+)
+from tbp.monty.frameworks.environments.embodied_data import EnvironmentDataset
+from tbp.monty.frameworks.environments.everything_is_awesome import (
+    EverythingIsAwesomeActionSampler,
+    EverythingIsAwesomeDataLoader,
+    EverythingIsAwesomeEnvironment,
+)
+from tbp.monty.frameworks.experiments.everything_is_awesome import (
+    EverythingIsAwesomeExperiment,
+)
+from tbp.monty.frameworks.models.evidence_matching import (
+    EvidenceGraphLM,
+    MontyForEvidenceGraphMatching,
+)
+from tbp.monty.frameworks.models.goal_state_generation import EvidenceGoalStateGenerator
+from tbp.monty.frameworks.models.motor_policies import BasePolicy
+from tbp.monty.frameworks.models.motor_system import MotorSystem
+from tbp.monty.frameworks.models.sensor_modules import (
+    DetailedLoggingSM,
+    FeatureChangeSM,
+)
 from tbp.monty.simulators.habitat.configs import (
     PatchViewFinderMontyWorldMountHabitatDatasetArgs,
     SurfaceViewFinderMontyWorldMountHabitatDatasetArgs,
@@ -174,7 +200,149 @@ randrot_noise_surf_sim_on_scan_tbp_robot_lab.update(
 )
 
 
+ACTUATOR_SERVER_URI = "PYRO:motor@192.168.0.235:3514"
+AGENT_ID = "agent_id_0"
+DEPTH_SERVER_URI = "PYRO:depth@192.168.0.235:3513"
+PITCH_DIAMETER_R = 0.02  # TODO: Measure and add to config
+RGB_SERVER_URI = "PYRO:rgb@192.168.0.143:3512"
+SENSOR_ID = "patch"
+SENSOR_RESOLUTION = [64, 64]
+
+everything_is_awesome_eval = dict(
+    experiment_class=EverythingIsAwesomeExperiment,
+    experiment_args=dict(
+        do_train=False,
+        do_eval=True,
+        max_eval_steps=500,
+        max_total_steps=4 * 500,
+        n_eval_epochs=1,
+        min_lms_match=1,
+        seed=1337,
+    ),
+    logging_config=copy.deepcopy(LoggingConfig()).update(
+        output_dir=os.path.join(monty_models_dir, "everything_is_awesome"),
+    ),
+    monty_config=dict(
+        monty_class=MontyForEvidenceGraphMatching,
+        monty_args=dict(
+            num_exploratory_steps=1_000,
+            min_eval_steps=3,
+            min_train_steps=3,
+            max_total_steps=2_500,
+        ),
+        learning_module_configs=dict(
+            learning_module_0=dict(
+                learning_module_class=EvidenceGraphLM,
+                learning_module_args=dict(
+                    max_match_distance=0.01,  # TODO: Will this work for radii units?
+                    tolerances=dict(
+                        patch=dict(
+                            hsv=np.array([0.1, 0.2, 0.2]),
+                            principal_curvatures_log=np.ones(2),
+                        )
+                    ),
+                    feature_weights=dict(
+                        patch=dict(
+                            hsv=np.array([1, 0.5, 0.5]),
+                        )
+                    ),
+                    x_percent_threshold=20,
+                    max_nneighbors=10,
+                    evidence_update_threshold="80%",
+                    max_graph_size=0.3,  # TODO: Will this work for radii units?
+                    num_model_voxels_per_dim=100,
+                    gsg_class=EvidenceGoalStateGenerator,
+                    gsg_args=dict(
+                        goal_tolerances=dict(
+                            location=0.015,  # TODO: Will this work for radii units?
+                        ),
+                        elapsed_steps_factor=10,
+                        min_post_goal_success_steps=5,
+                        x_percent_scale_factor=0.75,
+                        desired_object_distance=0.03,  # TODO: Will this work for radii units?  # noqa: E501
+                    ),
+                ),
+            ),
+        ),
+        sensor_module_configs=dict(
+            sensor_module_0=dict(
+                sensor_module_class=FeatureChangeSM,
+                sensor_module_args=dict(
+                    sensor_module_id=SENSOR_ID,
+                    features=[
+                        # morphological featuers (necessary)
+                        "pose_vectors",
+                        "pose_fully_defined",
+                        "on_object",
+                        # non-morphological features (optional)
+                        "object_coverage",
+                        "min_depth",
+                        "mean_depth",
+                        "hsv",
+                        "principal_curvatures",
+                        "principal_curvatures_log",
+                    ],
+                    delta_thresholds=dict(
+                        on_object=0,
+                        n_steps=20,
+                        hsv=[0.1, 0.1, 0.1],
+                        pose_vectors=[np.pi / 4, np.pi * 2, np.pi * 2],
+                        principal_curvatures_log=[2, 2],
+                        distance=0.01,
+                    ),
+                    surf_agent_sm=False,
+                    save_raw_obs=False,
+                ),
+            )
+        ),
+        motor_system_config=dict(
+            motor_system_class=MotorSystem,
+            motor_system_args=dict(
+                policy_class=BasePolicy,
+                policy_args=dict(
+                    action_sampler_class=EverythingIsAwesomeActionSampler,
+                    action_sampler_args={},
+                    agent_id=AGENT_ID,
+                    switch_frequency=1.0,
+                ),
+            ),
+        ),
+        sm_to_agent_dict=dict(
+            patch=AGENT_ID,
+        ),
+        sm_to_lm_matrix=[[0]],
+        lm_to_lm_matrix=None,
+        lm_to_lm_vote_matrix=None,
+    ),
+    dataset_class=EnvironmentDataset,
+    dataset_args=dict(
+        env_init_func=EverythingIsAwesomeEnvironment,
+        env_init_args=dict(
+            actuator_server_uri=ACTUATOR_SERVER_URI,
+            depth_server_uri=DEPTH_SERVER_URI,
+            pitch_diameter_r=PITCH_DIAMETER_R,
+            rgb_server_uri=RGB_SERVER_URI,
+        ),
+        transform=[
+            MissingToMaxDepth(agent_id=AGENT_ID, max_depth=1),
+            DepthTo3DLocations(
+                agent_id=AGENT_ID,
+                sensor_ids=[SENSOR_ID],
+                resolutions=[SENSOR_RESOLUTION],
+                world_coord=True,
+                get_all_points=True,
+                use_semantic_sensor=False,
+            ),
+        ],
+        rng=None,
+    ),
+    eval_dataloader_class=EverythingIsAwesomeDataLoader,
+    eval_dataloader_args={},
+)
+
+
 experiments = MyExperiments(
+    everything_is_awesome_eval=everything_is_awesome_eval,
     only_surf_agent_training_tbp_robot_lab=only_surf_agent_training_tbp_robot_lab,
     randrot_noise_dist_sim_on_scan_tbp_robot_lab=randrot_noise_dist_sim_on_scan_tbp_robot_lab,
     randrot_noise_surf_sim_on_scan_tbp_robot_lab=randrot_noise_surf_sim_on_scan_tbp_robot_lab,
