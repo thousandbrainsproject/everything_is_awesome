@@ -8,6 +8,7 @@
 # https://opensource.org/licenses/MIT.
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol, TypedDict, cast
 
@@ -22,8 +23,10 @@ from tbp.monty.frameworks.environments.embodied_environment import (
     EmbodiedEnvironment,
 )
 from tbp.monty.frameworks.models.motor_system_state import (
+    AgentState,
     MotorSystemState,
     ProprioceptiveState,
+    SensorState,
 )
 
 
@@ -46,21 +49,61 @@ class EverythingIsAwesomeObservations(TypedDict):
     agent_id_0: EverythingIsAwesomeAgentObservation
 
 
+@dataclass
+class MotorState:
+    speed: int
+    position: int
+    absolute_position: int
+
+
 class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
     """Everything Is Awesome hackathon environment."""
 
-    def __init__(self, actuator_server_uri: str, sensor_server_uri: str) -> None:
+    def __init__(
+        self, actuator_server_uri: str, sensor_server_uri: str, pitch_diameter_r: float
+    ) -> None:
+        """Initialize the Everything Is Awesome environment.
+
+        Args:
+            actuator_server_uri: The URI of the actuator server.
+            sensor_server_uri: The URI of the sensor server.
+            pitch_diameter_r: The pitch diameter in units of radii. One radius is the
+                distance between the sensor and the center of the platform that the
+                robot can rotate around.
+        """
         self._actuator_server = cast(
             ActuatorProtocol | ProprioceptionProtocol,
             Pyro5.api.Proxy(actuator_server_uri),
         )
         self._actuator = EverythingIsAwesomeActuator(
-            actuator_server=self._actuator_server
+            actuator_server=self._actuator_server,
+            pitch_diameter_r=pitch_diameter_r,
         )
         self._proprioception_server = cast(
             ProprioceptionProtocol, self._actuator_server
         )
         self._sensor_server = cast(SensorProtocol, Pyro5.api.Proxy(sensor_server_uri))
+
+        orbit_speed = self._proprioception_server.speed(Motor.ORBIT)
+        orbit_position = self._proprioception_server.position(Motor.ORBIT)
+        orbit_absolute_position = self._proprioception_server.absolute_position(
+            Motor.ORBIT
+        )
+        self._orbit_motor = MotorState(
+            speed=orbit_speed,
+            position=orbit_position,
+            absolute_position=orbit_absolute_position,
+        )
+        translate_speed = self._proprioception_server.speed(Motor.TRANSLATE)
+        translate_position = self._proprioception_server.position(Motor.TRANSLATE)
+        translate_absolute_position = self._proprioception_server.absolute_position(
+            Motor.TRANSLATE
+        )
+        self._translate_motor = MotorState(
+            speed=translate_speed,
+            position=translate_position,
+            absolute_position=translate_absolute_position,
+        )
 
     @property
     def action_space(self) -> ActionSpace:
@@ -91,8 +134,22 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         return self.observations()
 
     def get_state(self) -> ProprioceptiveState:
+        position = None
+        rotation = None
         # TODO: request state from self._proprioception_server
-        pass
+        return ProprioceptiveState(
+            agent_id_0=AgentState(
+                sensors=dict(
+                    patch=SensorState(
+                        # The sensor is fully coupled to the agent's position
+                        position=[0.0, 0.0, 0.0],
+                        rotation=[1.0, 0.0, 0.0, 0.0],  # WXYZ
+                    )
+                ),
+                position=position,
+                rotation=rotation,
+            )
+        )
 
     def remove_all_objects(self):
         raise NotImplementedError
@@ -123,17 +180,27 @@ class EverythingIsAwesomeDataLoader(EnvironmentDataLoader):
 class EverythingIsAwesomeActionSampler(ActionSampler):
     """ActionSampler for the Everything Is Awesome hackathon environment."""
 
+    def _sample_degrees(self) -> float:
+        return self.rng.uniform(low=1.0, high=10.0)
+
+    def _sample_distance(self) -> float:
+        return self.rng.uniform(low=0.01, high=0.1)
+
     def sample_orbit_left(self, agent_id: str) -> OrbitLeft:
-        return OrbitLeft(agent_id=agent_id, distance=1.0)
+        degrees = self._sample_degrees()
+        return OrbitLeft(agent_id=agent_id, degrees=degrees)
 
     def sample_orbit_right(self, agent_id: str) -> OrbitRight:
-        return OrbitRight(agent_id=agent_id, distance=1.0)
+        degrees = self._sample_degrees()
+        return OrbitRight(agent_id=agent_id, degrees=degrees)
 
     def sample_translate_up(self, agent_id: str) -> TranslateUp:
-        return TranslateUp(agent_id=agent_id, distance=1.0)
+        distance = self._sample_distance()
+        return TranslateUp(agent_id=agent_id, distance=distance)
 
     def sample_translate_down(self, agent_id: str) -> TranslateDown:
-        return TranslateDown(agent_id=agent_id, distance=1.0)
+        distance = self._sample_distance()
+        return TranslateDown(agent_id=agent_id, distance=distance)
 
 
 class EverythingIsAwesomeActuator:
@@ -145,24 +212,51 @@ class EverythingIsAwesomeActuator:
         In its place, we will likely want to use a Protocol instead.
     """
 
-    def __init__(self, actuator_server: ActuatorProtocol) -> None:
+    def __init__(
+        self, actuator_server: ActuatorProtocol, pitch_diameter_r: float
+    ) -> None:
         self._actuator_server = actuator_server
+        self._pitch_diameter_r = pitch_diameter_r
+        """The pitch diamater in units of radii.
+
+        One radius is the distance between the sensor and the center of the platform
+        that the robot can rotate around.
+        """
+
+    def _distance_to_rotations(self, distance_r: float) -> float:
+        """Convert a distance in radii to rotations.
+
+        Args:
+            distance_r: The distance in radii.
+
+        Returns:
+            The distance in rotations.
+        """
+        return distance_r / (np.pi * self._pitch_diameter_r)
 
     def actuate_orbit_left(self, action: OrbitLeft) -> None:
-        # TODO: send command to self._actuator_server
-        pass
+        # TODO: validate the sign of the degrees
+        self._actuator_server.run_for_degrees(motor=Motor.ORBIT, degrees=action.degrees)
 
     def actuate_orbit_right(self, action: OrbitRight) -> None:
-        # TODO: send command to self._actuator_server
-        pass
+        # TODO: validate the sign of the degrees
+        self._actuator_server.run_for_degrees(
+            motor=Motor.ORBIT, degrees=-action.degrees
+        )
 
     def actuate_translate_up(self, action: TranslateUp) -> None:
-        # TODO: send command to self._actuator_server
-        pass
+        rotations = self._distance_to_rotations(action.distance)
+        # TODO: validate the sign of the rotations
+        self._actuator_server.run_for_rotations(
+            motor=Motor.TRANSLATE, rotations=rotations
+        )
 
     def actuate_translate_down(self, action: TranslateDown) -> None:
-        # TODO: send command to self._actuator_server
-        pass
+        rotations = self._distance_to_rotations(action.distance)
+        # TODO: validate the sign of the rotations
+        self._actuator_server.run_for_rotations(
+            motor=Motor.TRANSLATE, rotations=-rotations
+        )
 
 
 class OrbitLeftActionSampler(Protocol):
@@ -180,9 +274,9 @@ class OrbitLeft(Action):
     def sample(cls, agent_id: str, sampler: OrbitLeftActionSampler) -> OrbitLeft:
         return sampler.sample_orbit_left(agent_id)
 
-    def __init__(self, agent_id: str, distance: float) -> None:
+    def __init__(self, agent_id: str, degrees: float) -> None:
         super().__init__(agent_id=agent_id)
-        self.distance = distance
+        self.degrees = degrees
 
     def act(self, actuator: OrbitLeftActuator) -> None:
         actuator.actuate_orbit_left(self)
@@ -203,9 +297,9 @@ class OrbitRight(Action):
     def sample(cls, agent_id: str, sampler: OrbitRightActionSampler) -> OrbitRight:
         return sampler.sample_orbit_right(agent_id)
 
-    def __init__(self, agent_id: str, distance: float) -> None:
+    def __init__(self, agent_id: str, degrees: float) -> None:
         super().__init__(agent_id=agent_id)
-        self.distance = distance
+        self.degrees = degrees
 
     def act(self, actuator: OrbitRightActuator) -> None:
         actuator.actuate_orbit_right(self)
@@ -265,6 +359,8 @@ class Motor(Enum):
 
 
 class ActuatorProtocol(Protocol):
+    def run_for_degrees(self, motor: Motor, degrees: float) -> None: ...
+    def run_for_rotations(self, motor: Motor, rotations: float) -> None: ...
     def run_to_position(self, motor: Motor, position: float) -> None: ...
 
 
@@ -274,4 +370,6 @@ class SensorProtocol(Protocol):
 
 
 class ProprioceptionProtocol(Protocol):
-    def absolute_position(self) -> list[float]: ...
+    def absolute_position(self, motor: Motor) -> int: ...
+    def position(self, motor: Motor) -> int: ...
+    def speed(self, motor: Motor) -> int: ...
