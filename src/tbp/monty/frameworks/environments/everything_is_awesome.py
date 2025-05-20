@@ -8,9 +8,11 @@
 # https://opensource.org/licenses/MIT.
 from __future__ import annotations
 
-from typing import Protocol, TypedDict
+from enum import Enum
+from typing import Protocol, TypedDict, cast
 
 import numpy as np
+import Pyro5.api
 
 from tbp.monty.frameworks.actions.action_samplers import ActionSampler
 from tbp.monty.frameworks.actions.actions import Action
@@ -47,6 +49,19 @@ class EverythingIsAwesomeObservations(TypedDict):
 class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
     """Everything Is Awesome hackathon environment."""
 
+    def __init__(self, actuator_server_uri: str, sensor_server_uri: str) -> None:
+        self._actuator_server = cast(
+            ActuatorProtocol | ProprioceptionProtocol,
+            Pyro5.api.Proxy(actuator_server_uri),
+        )
+        self._actuator = EverythingIsAwesomeActuator(
+            actuator_server=self._actuator_server
+        )
+        self._proprioception_server = cast(
+            ProprioceptionProtocol, self._actuator_server
+        )
+        self._sensor_server = cast(SensorProtocol, Pyro5.api.Proxy(sensor_server_uri))
+
     @property
     def action_space(self) -> ActionSpace:
         raise NotImplementedError
@@ -57,17 +72,37 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
     def close(self):
         pass
 
+    def observations(self) -> EverythingIsAwesomeObservations:
+        rgb = self._sensor_server.rgb()
+        depth = self._sensor_server.depth()
+        # TODO: process observations and create rgba and correct depth
+        rgba = None
+        return EverythingIsAwesomeObservations(
+            agent_id_0=EverythingIsAwesomeAgentObservation(
+                patch=EverythingIsAwesomeSensorObservation(
+                    rgba=rgba,
+                    depth=depth,
+                )
+            )
+        )
+
     def step(self, action: Action) -> EverythingIsAwesomeObservations:
-        pass
+        action.act(self._actuator)
+        return self.observations()
 
     def get_state(self) -> ProprioceptiveState:
+        # TODO: request state from self._proprioception_server
         pass
 
     def remove_all_objects(self):
         raise NotImplementedError
 
     def reset(self) -> EverythingIsAwesomeObservations:
-        pass
+        self._actuator_server.run_to_position(motor=Motor.ORBIT, position=0.0)
+        self._actuator_server.run_to_position(motor=Motor.TRANSLATE, position=0.0)
+        # TODO: Validate that the above code works as there are reports that it wouldn't
+        #       See https://github.com/RaspberryPiFoundation/python-build-hat/issues/179
+        return self.observations()
 
 
 class EverythingIsAwesomeDataLoader(EnvironmentDataLoader):
@@ -84,6 +119,7 @@ class EverythingIsAwesomeDataLoader(EnvironmentDataLoader):
         self._action = None
         return self._observation
 
+
 class EverythingIsAwesomeActionSampler(ActionSampler):
     """ActionSampler for the Everything Is Awesome hackathon environment."""
 
@@ -99,6 +135,7 @@ class EverythingIsAwesomeActionSampler(ActionSampler):
     def sample_translate_down(self, agent_id: str) -> TranslateDown:
         return TranslateDown(agent_id=agent_id, distance=1.0)
 
+
 class EverythingIsAwesomeActuator:
     """Actuator for the Everything Is Awesome hackathon environment.
 
@@ -108,17 +145,25 @@ class EverythingIsAwesomeActuator:
         In its place, we will likely want to use a Protocol instead.
     """
 
+    def __init__(self, actuator_server: ActuatorProtocol) -> None:
+        self._actuator_server = actuator_server
+
     def actuate_orbit_left(self, action: OrbitLeft) -> None:
+        # TODO: send command to self._actuator_server
         pass
 
     def actuate_orbit_right(self, action: OrbitRight) -> None:
+        # TODO: send command to self._actuator_server
         pass
 
     def actuate_translate_up(self, action: TranslateUp) -> None:
+        # TODO: send command to self._actuator_server
         pass
 
     def actuate_translate_down(self, action: TranslateDown) -> None:
+        # TODO: send command to self._actuator_server
         pass
+
 
 class OrbitLeftActionSampler(Protocol):
     def sample_orbit_left(self, agent_id: str) -> OrbitLeft: ...
@@ -142,6 +187,7 @@ class OrbitLeft(Action):
     def act(self, actuator: OrbitLeftActuator) -> None:
         actuator.actuate_orbit_left(self)
 
+
 class OrbitRightActionSampler(Protocol):
     def sample_orbit_right(self, agent_id: str) -> OrbitRight: ...
 
@@ -164,6 +210,7 @@ class OrbitRight(Action):
     def act(self, actuator: OrbitRightActuator) -> None:
         actuator.actuate_orbit_right(self)
 
+
 class TranslateUpActionSampler(Protocol):
     def sample_translate_up(self, agent_id: str) -> TranslateUp: ...
 
@@ -185,6 +232,7 @@ class TranslateUp(Action):
 
     def act(self, actuator: TranslateUpActuator) -> None:
         actuator.actuate_translate_up(self)
+
 
 class TranslateDownActionSampler(Protocol):
     def sample_translate_down(self, agent_id: str) -> TranslateDown: ...
@@ -209,3 +257,21 @@ class TranslateDown(Action):
 
     def act(self, actuator: TranslateDownActuator) -> None:
         actuator.actuate_translate_down(self)
+
+
+class Motor(Enum):
+    ORBIT = "orbit"
+    TRANSLATE = "translate"
+
+
+class ActuatorProtocol(Protocol):
+    def run_to_position(self, motor: Motor, position: float) -> None: ...
+
+
+class SensorProtocol(Protocol):
+    def rgb(self) -> list[list[int]]: ...
+    def depth(self) -> list[list[int]]: ...
+
+
+class ProprioceptionProtocol(Protocol):
+    def absolute_position(self) -> list[float]: ...
