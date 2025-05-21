@@ -163,8 +163,8 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         raise NotImplementedError
 
     def reset(self) -> EverythingIsAwesomeObservations:
-        self._actuator_server.run_to_position(motor=Motor.ORBIT, position=0.0)
-        self._actuator_server.run_to_position(motor=Motor.TRANSLATE, position=0.0)
+        self._actuator_server.run_to_position(motor=Motor.ORBIT, degrees=0.0)
+        self._actuator_server.run_to_position(motor=Motor.TRANSLATE, degrees=0.0)
         # TODO: Validate that the above code works as there are reports that it wouldn't
         #       See https://github.com/RaspberryPiFoundation/python-build-hat/issues/179
         return self._observations()
