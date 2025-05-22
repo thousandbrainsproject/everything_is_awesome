@@ -102,6 +102,7 @@ NAMES.extend(field.name for field in fields(UnsupervisedInferenceExperiments))
 @dataclass
 class MyExperiments:
     everything_is_awesome_eval: dict
+    everything_is_awesome_train: dict
     only_surf_agent_training_tbp_robot_lab: dict
     randrot_noise_dist_sim_on_scan_tbp_robot_lab: dict
     randrot_noise_surf_sim_on_scan_tbp_robot_lab: dict

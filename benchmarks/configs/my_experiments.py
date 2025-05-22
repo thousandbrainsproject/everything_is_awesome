@@ -369,9 +369,164 @@ everything_is_awesome_eval = dict(
     ),
 )
 
+everything_is_awesome_train = dict(
+    experiment_class=EverythingIsAwesomeExperiment,
+    experiment_args=dict(
+        do_train=True,
+        do_eval=False,
+        max_eval_steps=500,
+        max_train_steps=1000,
+        max_total_steps=4 * 500,
+        n_eval_epochs=1,
+        n_train_epochs=1,
+        min_lms_match=1,
+        model_name_or_path=model_path_tbp_robot_lab,
+        seed=1337,
+        show_sensor_output=False,  # Use this for online visualization
+    ),
+    logging_config=dict(
+        monty_log_level="DETAILED",
+        monty_handlers=[
+            BasicCSVStatsHandler,
+            DetailedJSONHandler,
+            ReproduceEpisodeHandler,
+        ],
+        wandb_handlers=[],
+        python_log_level="INFO",
+        python_log_to_file=True,
+        python_log_to_stdout=True,
+        output_dir=os.path.join(monty_models_dir, "everything_is_awesome"),
+        run_name="",
+        resume_wandb_run=False,
+        wandb_id=wandb.util.generate_id(),
+        wandb_group="debugging",
+        log_parallel_wandb=False,
+    ),
+    monty_config=dict(
+        monty_class=MontyForEvidenceGraphMatching,
+        monty_args=dict(
+            num_exploratory_steps=10,
+            min_eval_steps=3,
+            min_train_steps=3,
+            max_total_steps=25,
+        ),
+        learning_module_configs=dict(
+            learning_module_0=dict(
+                learning_module_class=EvidenceGraphLM,
+                learning_module_args=dict(
+                    max_match_distance=0.01,  # TODO: Will this work for radii units?
+                    tolerances=dict(
+                        patch=dict(
+                            hsv=np.array([0.1, 0.2, 0.2]),
+                            principal_curvatures_log=np.ones(2),
+                        )
+                    ),
+                    feature_weights=dict(
+                        patch=dict(
+                            hsv=np.array([1, 0.5, 0.5]),
+                        )
+                    ),
+                    x_percent_threshold=20,
+                    max_nneighbors=10,
+                    evidence_update_threshold="80%",
+                    max_graph_size=0.3,  # TODO: Will this work for radii units?
+                    num_model_voxels_per_dim=100,
+                    gsg_class=EvidenceGoalStateGenerator,
+                    gsg_args=dict(
+                        goal_tolerances=dict(
+                            location=0.015,  # TODO: Will this work for radii units?
+                        ),
+                        elapsed_steps_factor=10,
+                        min_post_goal_success_steps=5,
+                        x_percent_scale_factor=0.75,
+                        desired_object_distance=0.03,  # TODO: Will this work for radii units?  # noqa: E501
+                    ),
+                ),
+            ),
+        ),
+        sensor_module_configs=dict(
+            sensor_module_0=dict(
+                sensor_module_class=FeatureChangeSM,
+                sensor_module_args=dict(
+                    sensor_module_id=SENSOR_ID,
+                    features=[
+                        # morphological featuers (necessary)
+                        "pose_vectors",
+                        "pose_fully_defined",
+                        "on_object",
+                        # non-morphological features (optional)
+                        "object_coverage",
+                        "min_depth",
+                        "mean_depth",
+                        "hsv",
+                        "principal_curvatures",
+                        "principal_curvatures_log",
+                    ],
+                    delta_thresholds=dict(
+                        on_object=0,
+                        n_steps=20,
+                        hsv=[0.1, 0.1, 0.1],
+                        pose_vectors=[np.pi / 4, np.pi * 2, np.pi * 2],
+                        principal_curvatures_log=[2, 2],
+                        distance=0.01,
+                    ),
+                    surf_agent_sm=False,
+                    save_raw_obs=False,
+                ),
+            )
+        ),
+        motor_system_config=dict(
+            motor_system_class=MotorSystem,
+            motor_system_args=dict(
+                policy_class=EverythingIsAwesomePolicy,
+                policy_args=dict(
+                    action_sampler_class=EverythingIsAwesomeActionSampler,
+                    action_sampler_args={},
+                    agent_id=AGENT_ID,
+                    switch_frequency=1.0,
+                ),
+            ),
+        ),
+        sm_to_agent_dict=dict(
+            patch=AGENT_ID,
+        ),
+        sm_to_lm_matrix=[[0]],
+        lm_to_lm_matrix=None,
+        lm_to_lm_vote_matrix=None,
+    ),
+    dataset_class=EnvironmentDataset,
+    dataset_args=dict(
+        env_init_func=EverythingIsAwesomeEnvironment,
+        env_init_args=dict(
+            actuator_server_uri=ACTUATOR_SERVER_URI,
+            depth_server_uri=DEPTH_SERVER_URI,
+            pitch_diameter_rr=PITCH_DIAMETER_RR,
+            rgb_server_uri=RGB_SERVER_URI,
+        ),
+        transform=[
+            DepthTo3DLocations(
+                agent_id=AGENT_ID,
+                clip_value=DEPTH_CLIP_VALUE_RR,
+                depth_clip_sensors=[SENSOR_ID],
+                get_all_points=True,
+                resolutions=[SENSOR_RESOLUTION],
+                sensor_ids=[SENSOR_ID],
+                use_semantic_sensor=False,
+                world_coord=True,
+            ),
+        ],
+        rng=None,
+    ),
+    train_dataloader_class=EverythingIsAwesomeDataLoader,
+    train_dataloader_args=dict(
+        object_name="potted_meat_can",
+    ),
+)
+
 
 experiments = MyExperiments(
     everything_is_awesome_eval=everything_is_awesome_eval,
+    everything_is_awesome_train=everything_is_awesome_train,
     only_surf_agent_training_tbp_robot_lab=only_surf_agent_training_tbp_robot_lab,
     randrot_noise_dist_sim_on_scan_tbp_robot_lab=randrot_noise_dist_sim_on_scan_tbp_robot_lab,
     randrot_noise_surf_sim_on_scan_tbp_robot_lab=randrot_noise_surf_sim_on_scan_tbp_robot_lab,
