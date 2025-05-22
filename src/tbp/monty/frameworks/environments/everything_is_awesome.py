@@ -30,7 +30,6 @@ from tbp.monty.frameworks.environments.embodied_environment import (
 from tbp.monty.frameworks.models.motor_policies import BasePolicy
 from tbp.monty.frameworks.models.motor_system_state import (
     AgentState,
-    MotorSystemState,
     ProprioceptiveState,
     SensorState,
 )
@@ -324,18 +323,12 @@ class EverythingIsAwesomeDataLoader(EnvironmentDataLoader):
         }
 
     def __iter__(self):
+        """Do not reset the dataset when starting the iterator.
+
+        Returns:
+            The iterator.
+        """
         return self
-
-    def pre_episode(self):
-        super().pre_episode()
-        self._reset_agent()
-
-    def _reset_agent(self):
-        self._observation, proprioceptive_state = self.dataset.reset()
-        self._motor_system_state = MotorSystemState(proprioceptive_state)
-        self._counter = 0
-        self._action = None
-        return self._observation
 
 
 class EverythingIsAwesomePolicy(BasePolicy):
