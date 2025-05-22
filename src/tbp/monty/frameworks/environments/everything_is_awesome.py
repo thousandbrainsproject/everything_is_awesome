@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol, TypedDict, Union, cast
 
+import cv2
 import numpy as np
 import Pyro5.api
 import quaternion
@@ -115,16 +116,64 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
     def close(self):
         pass
 
+    def _extract_patch(self, img, side=70, resize_to=None, start_pos=(0, 0)):
+        """Extracts a patch from the given image.
+
+        Args:
+          img (numpy.array): The input image.
+          side (int): The size of the square patch to extract. Defaults to 70.
+          resize_to (tuple or int): Optional tuple specifying the new dimensions
+            for resizing, or an integer for a single dimension. If None, no resizing
+            is performed.
+          start_pos (tuple): A tuple specifying the starting position of the patch,
+            as (x, y) coordinates. Uses top left for the origin. Defaults to (0, 0).
+
+        Returns:
+          numpy.array: A 2D array representing the extracted patch.
+        """
+        img_array = np.array(img).astype("uint8")
+        if resize_to is not None:
+            img_array = cv2.resize(
+                img_array, resize_to, interpolation=cv2.INTER_NEAREST
+            )
+
+        start_x, start_y = start_pos
+        end_x, end_y = start_x + side, start_y + side
+        patch = img_array[start_y:end_y, start_x:end_x]
+        return patch
+
     def _observations(self) -> EverythingIsAwesomeObservations:
-        rgb = self._rgb_server.rgb()
-        depth = self._depth_server.depth()
-        # TODO: process observations and create rgba and correct depth
-        rgba = None
+        """Requests and prepares RGB and depth observations.
+
+        This function will call the server proxy to request RGB and depth images,
+        then the images are stitched and patches are extracted to be used for
+        observations. Note that the stitching parameters (e.g., resize_to, start_pos)
+        are based on the hardware design of the robot and the placement of the sensors.
+
+        Returns:
+          EverythingIsAwesomeObservations: An object containing RGB and depth
+            observations, as well as other relevant information.
+        """
+        # Get RGB image and extract the patch
+        rgb = self._rgb_server.rgb(size=600)
+        rgb_patch = self._extract_patch(rgb, start_pos=(250, 250))
+
+        # stack alpha channel with 255 to the rgb
+        alpha_patch = np.full(rgb_patch.shape[:2], 255, dtype=rgb_patch.dtype)
+        rgba_patch = np.dstack((rgb_patch, alpha_patch))
+
+        # Get Depth image and extract the patch
+        # TODO: Figure out the correct values for depth sensor. Do not normalize.
+        depth = self._depth_server.depth(size=180)
+        depth_patch = self._extract_patch(
+            depth, resize_to=(1000, 1000), start_pos=(550, 350)
+        )
+
         return EverythingIsAwesomeObservations(
             agent_id_0=EverythingIsAwesomeAgentObservation(
                 patch=EverythingIsAwesomeSensorObservation(
-                    rgba=rgba,
-                    depth=depth,
+                    rgba=rgba_patch,
+                    depth=depth_patch,
                 )
             )
         )
