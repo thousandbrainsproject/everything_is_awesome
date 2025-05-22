@@ -15,6 +15,36 @@ from tbp.monty.frameworks.utils.everything_is_awesome_visualizations import (
 )
 
 
+class EverythingIsAwesomeTrainExperiment(MontyExperiment):
+    @property
+    def logger_args(self):
+        args = super().logger_args
+        if self.dataloader is not None:
+            args["target"] = self.dataloader.primary_target
+        return args
+
+    def pre_episode(self):
+        """Required to pass the primary target object to the model.
+
+        TODO: This is a hack to get things working. Do no override
+              methods with different signatures in the future.
+        """
+        self.model.pre_episode(self.dataloader.primary_target)
+        self.model.switch_to_exploratory_step()
+        self.model.detected_object = self.model.primary_target["object"]
+        for lm in self.model.learning_modules:
+            lm.detected_object = self.model.primary_target["object"]
+
+        self.dataloader.pre_episode()
+
+        self.max_steps = self.max_train_steps
+
+        self.logger_handler.pre_episode(self.logger_args)
+
+        if self.show_sensor_output:
+            self.online_visualizer = EverythingIsAwesomeVisualizer(axes=True)
+
+
 class EverythingIsAwesomeExperiment(MontyExperiment):
     @property
     def logger_args(self):

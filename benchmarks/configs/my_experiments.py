@@ -55,6 +55,7 @@ from tbp.monty.frameworks.environments.everything_is_awesome import (
 )
 from tbp.monty.frameworks.experiments.everything_is_awesome import (
     EverythingIsAwesomeExperiment,
+    EverythingIsAwesomeTrainExperiment,
 )
 from tbp.monty.frameworks.loggers.monty_handlers import (
     BasicCSVStatsHandler,
@@ -131,6 +132,10 @@ only_surf_agent_training_tbp_robot_lab.update(
 model_path_tbp_robot_lab = os.path.join(
     pretrained_dir,
     "surf_agent_1lm_tbp_robot_lab/pretrained/",
+)
+model_path_everything_is_awesome = os.path.join(
+    pretrained_dir,
+    "everything_is_awesome/pretrained/",
 )
 
 
@@ -370,7 +375,7 @@ everything_is_awesome_eval = dict(
 )
 
 everything_is_awesome_train = dict(
-    experiment_class=EverythingIsAwesomeExperiment,
+    experiment_class=EverythingIsAwesomeTrainExperiment,
     experiment_args=dict(
         do_train=True,
         do_eval=False,
@@ -380,7 +385,7 @@ everything_is_awesome_train = dict(
         n_eval_epochs=1,
         n_train_epochs=1,
         min_lms_match=1,
-        model_name_or_path=model_path_tbp_robot_lab,
+        model_name_or_path="",
         seed=1337,
         show_sensor_output=False,  # Use this for online visualization
     ),
@@ -392,7 +397,7 @@ everything_is_awesome_train = dict(
             ReproduceEpisodeHandler,
         ],
         wandb_handlers=[],
-        python_log_level="INFO",
+        python_log_level="DEBUG",
         python_log_to_file=True,
         python_log_to_stdout=True,
         output_dir=os.path.join(monty_models_dir, "everything_is_awesome"),
@@ -405,7 +410,7 @@ everything_is_awesome_train = dict(
     monty_config=dict(
         monty_class=MontyForEvidenceGraphMatching,
         monty_args=dict(
-            num_exploratory_steps=10,
+            num_exploratory_steps=30,
             min_eval_steps=3,
             min_train_steps=3,
             max_total_steps=25,
@@ -414,7 +419,7 @@ everything_is_awesome_train = dict(
             learning_module_0=dict(
                 learning_module_class=EvidenceGraphLM,
                 learning_module_args=dict(
-                    max_match_distance=0.01,  # TODO: Will this work for radii units?
+                    max_match_distance=0.01,  # TODO: Will this work for robot_radius units?  # noqa: E501
                     tolerances=dict(
                         patch=dict(
                             hsv=np.array([0.1, 0.2, 0.2]),
@@ -429,17 +434,17 @@ everything_is_awesome_train = dict(
                     x_percent_threshold=20,
                     max_nneighbors=10,
                     evidence_update_threshold="80%",
-                    max_graph_size=0.3,  # TODO: Will this work for radii units?
+                    max_graph_size=2,
                     num_model_voxels_per_dim=100,
                     gsg_class=EvidenceGoalStateGenerator,
                     gsg_args=dict(
                         goal_tolerances=dict(
-                            location=0.015,  # TODO: Will this work for radii units?
+                            location=0.015,  # TODO: Will this work for robot_radius units?  # noqa: E501
                         ),
                         elapsed_steps_factor=10,
                         min_post_goal_success_steps=5,
                         x_percent_scale_factor=0.75,
-                        desired_object_distance=0.03,  # TODO: Will this work for radii units?  # noqa: E501
+                        desired_object_distance=0.03,  # TODO: Will this work for robot_radius units?  # noqa: E501
                     ),
                 ),
             ),
