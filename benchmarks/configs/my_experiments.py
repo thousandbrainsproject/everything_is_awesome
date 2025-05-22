@@ -51,6 +51,7 @@ from tbp.monty.frameworks.environments.everything_is_awesome import (
     EverythingIsAwesomeActionSampler,
     EverythingIsAwesomeDataLoader,
     EverythingIsAwesomeEnvironment,
+    EverythingIsAwesomePolicy,
 )
 from tbp.monty.frameworks.experiments.everything_is_awesome import (
     EverythingIsAwesomeExperiment,
@@ -324,7 +325,7 @@ everything_is_awesome_eval = dict(
         motor_system_config=dict(
             motor_system_class=MotorSystem,
             motor_system_args=dict(
-                policy_class=BasePolicy,
+                policy_class=EverythingIsAwesomePolicy,
                 policy_args=dict(
                     action_sampler_class=EverythingIsAwesomeActionSampler,
                     action_sampler_args={},

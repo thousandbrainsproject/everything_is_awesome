@@ -27,6 +27,7 @@ from tbp.monty.frameworks.environments.embodied_environment import (
     ActionSpace,
     EmbodiedEnvironment,
 )
+from tbp.monty.frameworks.models.motor_policies import BasePolicy
 from tbp.monty.frameworks.models.motor_system_state import (
     AgentState,
     MotorSystemState,
@@ -332,6 +333,14 @@ class EverythingIsAwesomeDataLoader(EnvironmentDataLoader):
         self._counter = 0
         self._action = None
         return self._observation
+
+
+class EverythingIsAwesomePolicy(BasePolicy):
+    """Policy for the Everything Is Awesome hackathon environment."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.use_goal_state_driven_actions = False
 
 
 class EverythingIsAwesomeActionSampler(ActionSampler):
