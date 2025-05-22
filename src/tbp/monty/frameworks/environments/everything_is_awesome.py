@@ -324,7 +324,7 @@ class EverythingIsAwesomeDataLoader(EnvironmentDataLoader):
         }
 
     def __iter__(self):
-        pass
+        return self
 
     def pre_episode(self):
         super().pre_episode()
