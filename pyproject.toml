@@ -64,6 +64,8 @@ dev = [
 ]
 everything_is_awesome = [
     'pyro5',
+    'trimesh',
+    'vedo',
 ]
 generate_api_docs_tool = [
     'docutils>=0.17',

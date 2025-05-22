@@ -163,10 +163,20 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         raise NotImplementedError
 
     def reset(self) -> EverythingIsAwesomeObservations:
+        # slowly move the translate motor to the bottom
+        curr_pos = self._proprioception_server.position(Motor.TRANSLATE)
+        prev_pos = curr_pos + 1  # just make them different
+        while prev_pos != curr_pos:
+            self._actuator_server.run_for_rotations(
+                motor=Motor.TRANSLATE,
+                rotations=-EverythingIsAwesomeActuator.MIN_GRAVITY_ASSISTED_ROTATION,
+            )
+            prev_pos = curr_pos
+            curr_pos = self._proprioception_server.position(Motor.TRANSLATE)
+
+        # reset to the arbitrary starting position
         self._actuator_server.run_to_position(motor=Motor.ORBIT, degrees=0.0)
-        self._actuator_server.run_to_position(motor=Motor.TRANSLATE, degrees=0.0)
-        # TODO: Validate that the above code works as there are reports that it wouldn't
-        #       See https://github.com/RaspberryPiFoundation/python-build-hat/issues/179
+
         return self._observations()
 
 
@@ -188,6 +198,12 @@ class EverythingIsAwesomeDataLoader(EnvironmentDataLoader):
 class EverythingIsAwesomeActionSampler(ActionSampler):
     """ActionSampler for the Everything Is Awesome hackathon environment."""
 
+    MIN_ORBIT_DEGREES = 5.0  # Empirically determined
+    MAX_ORBIT_DEGREES = 45.0  # Arbitrary choice
+
+    MIN_TRANSLATE_DISTANCE = 0.00774016  # Empirically determined
+    MAX_TRANSLATE_DISTANCE = 0.1  # Arbitrary choice
+
     def __init__(self, rng: Generator = None) -> None:
         super().__init__(
             rng=rng,
@@ -200,10 +216,12 @@ class EverythingIsAwesomeActionSampler(ActionSampler):
         )
 
     def _sample_degrees(self) -> float:
-        return self.rng.uniform(low=1.0, high=10.0)
+        return self.rng.uniform(low=self.MIN_ORBIT_DEGREES, high=self.MAX_ORBIT_DEGREES)
 
     def _sample_distance(self) -> float:
-        return self.rng.uniform(low=0.01, high=0.1)
+        return self.rng.uniform(
+            low=self.MIN_TRANSLATE_DISTANCE, high=self.MAX_TRANSLATE_DISTANCE
+        )
 
     def sample_orbit_left(self, agent_id: str) -> OrbitLeft:
         degrees = self._sample_degrees()
@@ -231,6 +249,10 @@ class EverythingIsAwesomeActuator:
         In its place, we will likely want to use a Protocol instead.
     """
 
+    MIN_AGAINST_GRAVITY_ROTATION = 0.1  # Empirically determined
+    MIN_GRAVITY_ASSISTED_ROTATION = 0.02  # Empirically determined
+    MAX_GRAVITY_ASSISTED_ROTATION = 0.1  # Empirically determined
+
     def __init__(
         self, actuator_server: ActuatorProtocol, pitch_diameter_r: float
     ) -> None:
@@ -240,7 +262,17 @@ class EverythingIsAwesomeActuator:
 
         One radius is the distance between the sensor and the center of the platform
         that the robot can rotate around.
+
+        Note:
+            The radius is 276mm.
+            The pitch radius is 17mm, pitch diameter is 34mm.
+            The pitch diameter in radii is 34mm / 276mm = 0.12318841.
         """
+        self._min_distance_r = (
+            np.pi
+            * self._pitch_diameter_r
+            * min(self.MIN_AGAINST_GRAVITY_ROTATION, self.MIN_GRAVITY_ASSISTED_ROTATION)
+        )
 
     def _distance_to_rotations(self, distance_r: float) -> float:
         """Convert a distance in radii to rotations.
@@ -254,25 +286,27 @@ class EverythingIsAwesomeActuator:
         return distance_r / (np.pi * self._pitch_diameter_r)
 
     def actuate_orbit_left(self, action: OrbitLeft) -> None:
-        # TODO: validate the sign of the degrees
-        self._actuator_server.run_for_degrees(motor=Motor.ORBIT, degrees=action.degrees)
-
-    def actuate_orbit_right(self, action: OrbitRight) -> None:
-        # TODO: validate the sign of the degrees
         self._actuator_server.run_for_degrees(
             motor=Motor.ORBIT, degrees=-action.degrees
         )
 
+    def actuate_orbit_right(self, action: OrbitRight) -> None:
+        self._actuator_server.run_for_degrees(motor=Motor.ORBIT, degrees=action.degrees)
+
     def actuate_translate_up(self, action: TranslateUp) -> None:
         rotations = self._distance_to_rotations(action.distance)
-        # TODO: validate the sign of the rotations
+        # account for minimum viable rotation against gravity
+        rotations = max(rotations, self.MIN_AGAINST_GRAVITY_ROTATION)
         self._actuator_server.run_for_rotations(
             motor=Motor.TRANSLATE, rotations=rotations
         )
 
     def actuate_translate_down(self, action: TranslateDown) -> None:
         rotations = self._distance_to_rotations(action.distance)
-        # TODO: validate the sign of the rotations
+        # account for minimum viable gravity-assisted rotation
+        rotations = max(rotations, self.MIN_GRAVITY_ASSISTED_ROTATION)
+        # account for maximum gravity-assisted rotation
+        rotations = min(rotations, self.MAX_GRAVITY_ASSISTED_ROTATION)
         self._actuator_server.run_for_rotations(
             motor=Motor.TRANSLATE, rotations=-rotations
         )
@@ -389,6 +423,7 @@ class RgbProtocol(Protocol):
 
 class DepthProtocol(Protocol):
     def depth(self, size: int = 64) -> list[list[list[int]]]: ...
+
 
 class ProprioceptionProtocol(Protocol):
     def absolute_position(self, motor: Motor) -> int: ...

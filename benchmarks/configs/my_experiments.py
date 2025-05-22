@@ -208,7 +208,7 @@ randrot_noise_surf_sim_on_scan_tbp_robot_lab.update(
 ACTUATOR_SERVER_URI = "PYRO:motor@192.168.0.235:3514"
 AGENT_ID = "agent_id_0"
 DEPTH_SERVER_URI = "PYRO:depth@192.168.0.235:3513"
-PITCH_DIAMETER_R = 0.02  # TODO: Measure and add to config
+PITCH_DIAMETER_R = 0.12318841  # Based on physical measurements
 RGB_SERVER_URI = "PYRO:rgb@192.168.0.143:3512"
 SENSOR_ID = "patch"
 SENSOR_RESOLUTION = [64, 64]
