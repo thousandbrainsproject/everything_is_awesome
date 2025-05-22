@@ -93,10 +93,8 @@ class EverythingIsAwesomeExperiment(MontyExperiment):
             mlh_location = current_mlh["location"]
             mlh_rotation = current_mlh["rotation"]
 
-            glb_path = "/home/ramy/tbp/data/habitat/objects/ycb/meshes/025_mug/google_16k/textured.glb.orig"
-
             self.online_visualizer.update_data(
-                glb_path,
+                mlh_object=mlh_object,
                 object_orientation=mlh_rotation,
                 agent_position=agent_position,
                 agent_orientation=agent_rotation,

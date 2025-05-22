@@ -12,11 +12,17 @@ class EverythingIsAwesomeVisualizer(vedo.Plotter):
         self.show_axes = axes
         self.initialize_parameters()
 
+        self.forward_axis = np.array([-1, 0, 0])
+        self.up_axis = np.array([0, 0, 1])
+        self.data_dir = os.path.join(os.environ["MONTY_DATA"], "tbp_robot_lab/meshes")
+
     def update_data(
-        self, glb_path, object_orientation, agent_position, agent_orientation
+        self, mlh_object, object_orientation, agent_position, agent_orientation
     ):
+        glb_path = self.find_glb_orig(self.data_dir, mlh_object)
         if self.glb_path != glb_path:
-            self.add_glb(glb_path)
+            self.clear_scene()
+            self.add_glb(glb_path, load_texture=False)
             self.glb_path = glb_path
 
         self.set_camera_absolute_orientation(
@@ -28,6 +34,31 @@ class EverythingIsAwesomeVisualizer(vedo.Plotter):
         self.show(resetcam=False, interactive=False, axes=self.show_axes)
         time.sleep(0.01)
 
+    def find_glb_orig(self, data_dir, object_name):
+        """Searches for the .glb.orig file of a given YCB object in a directory.
+
+        Args:
+            data_dir: The root directory where YCB objects are stored.
+            object_name: The object name to search for (e.g., "master_chef_can").
+
+        Returns:
+            The full path to the .glb.orig file if found; otherwise, None.
+        """
+        for dirpath, dirnames, _ in os.walk(data_dir):
+            for dirname in dirnames:
+                if dirname.endswith(object_name):
+                    glb_orig_path = os.path.join(
+                        dirpath, dirname, "google_16k", "textured.glb"
+                    )
+                    if os.path.exists(glb_orig_path):
+                        return glb_orig_path
+                    else:
+                        glb_orig_path = os.path.join(dirpath, dirname, "textured.glb")
+                        if os.path.exists(glb_orig_path):
+                            return glb_orig_path
+
+        return None  # Return None if no match is found
+
     def set_object_orientation(self, orientation):
         orientation_xyz = orientation.as_euler("xyz", orientation)
         self.obj.rotate_x(orientation_xyz[0], rad=False)
@@ -38,12 +69,10 @@ class EverythingIsAwesomeVisualizer(vedo.Plotter):
         self,
         position: np.ndarray,
         orientation: np.ndarray,
-        forward_axis: np.ndarray = np.array([-1, 0, 0]),
-        up_axis: np.ndarray = np.array([0, 0, 1]),
     ):
-        forward_world = orientation.apply(forward_axis)
-        up_world = orientation.apply(up_axis)
-        focal_point = position + forward_world  # Look "one unit" ahead in world space
+        forward_world = orientation.apply(self.forward_axis)
+        up_world = orientation.apply(self.up_axis)
+        focal_point = position + forward_world
 
         self.camera.SetPosition(*position)
         self.camera.SetFocalPoint(*focal_point)
@@ -61,7 +90,7 @@ class EverythingIsAwesomeVisualizer(vedo.Plotter):
         self.obj = None
         self.cam = None
 
-    def add_glb(self, file):
+    def add_glb(self, file, load_texture=False):
         def load_glb_orig_binary(file_path):
             with open(file_path, "rb") as f:
                 mesh = trimesh.load(f, file_type="glb")
@@ -78,9 +107,10 @@ class EverythingIsAwesomeVisualizer(vedo.Plotter):
         obj = vedo.Mesh([geometry.vertices, geometry.faces])
 
         # add texture
-        img.save("tmp_texture.png", format="PNG")
-        obj.texture("tmp_texture.png", tcoords=uv)
-        os.remove("tmp_texture.png")
+        if load_texture:
+            img.save("tmp_texture.png", format="PNG")
+            obj.texture("tmp_texture.png", tcoords=uv)
+            os.remove("tmp_texture.png")
 
         # add mesh to plotter
         self.obj = obj
