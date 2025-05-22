@@ -14,8 +14,12 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from scipy.spatial.transform import Rotation
 
 from tbp.monty.frameworks.environments.embodied_data import SaccadeOnImageDataLoader
+from tbp.monty.frameworks.utils.everything_is_awesome_visualizations import (
+    EverythingIsAwesomeVisualizer,
+)
 from tbp.monty.frameworks.utils.plot_utils import add_patch_outline_to_view_finder
 
 from .monty_experiment import MontyExperiment
@@ -67,7 +71,8 @@ class MontyObjectRecognitionExperiment(MontyExperiment):
         self.logger_handler.pre_episode(self.logger_args)
 
         if self.show_sensor_output:
-            self.initialize_online_plotting()
+            # self.initialize_online_plotting()
+            self.online_visualizer = EverythingIsAwesomeVisualizer(axes=True)
 
     def run_episode_steps(self):
         """Runs one episode of the experiment.
@@ -80,8 +85,8 @@ class MontyObjectRecognitionExperiment(MontyExperiment):
             The number of total steps taken in the episode.
         """
         for loader_step, observation in enumerate(self.dataloader):
-            if self.show_sensor_output:
-                self.show_observations(observation, loader_step)
+            # if self.show_sensor_output:
+            #     self.show_observations(observation, loader_step)
 
             if self.model.check_reached_max_matching_steps(self.max_steps):
                 logging.info(
@@ -106,10 +111,38 @@ class MontyObjectRecognitionExperiment(MontyExperiment):
             else:
                 self.model.step(observation)
 
+            if self.show_sensor_output:
+                agent_state = self.dataset.env.get_state()
+                agent_position = agent_state["agent_id_0"]["position"]
+                agent_rotation_quat = agent_state["agent_id_0"]["rotation"]
+                agent_rotation = Rotation.from_quat(
+                    [
+                        agent_rotation_quat.x,
+                        agent_rotation_quat.y,
+                        agent_rotation_quat.z,
+                        agent_rotation_quat.w,
+                    ]
+                )
+
+                current_mlh = self.model.learning_modules[0].current_mlh
+                mlh_object = current_mlh["graph_id"]
+                mlh_location = current_mlh["location"]
+                mlh_rotation = current_mlh["rotation"]
+
+                glb_path = "/home/ramy/tbp/data/habitat/objects/ycb/meshes/025_mug/google_16k/textured.glb.orig"
+
+                # self.online_visualizer.update_data(
+                #     glb_path,
+                #     object_orientation=mlh_rotation,
+                #     agent_position=agent_position,
+                #     agent_orientation=agent_rotation,
+                # )
+
             if self.model.is_done:
                 # Check this right after step to avoid setting time out
                 # after object was already recognized.
                 return loader_step
+
         # handle case where spiral policy calls StopIterator in motor policy
         self.model.set_is_done()
         return loader_step

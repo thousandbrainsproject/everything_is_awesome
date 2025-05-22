@@ -226,7 +226,7 @@ everything_is_awesome_eval = dict(
         min_lms_match=1,
         model_name_or_path="",
         seed=1337,
-        show_sensor_output=False,
+        show_sensor_output=False,  # Use this for online visualization
     ),
     logging_config=dict(
         monty_log_level="DETAILED",
