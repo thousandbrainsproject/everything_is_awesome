@@ -66,7 +66,6 @@ from tbp.monty.frameworks.models.evidence_matching import (
     MontyForEvidenceGraphMatching,
 )
 from tbp.monty.frameworks.models.goal_state_generation import EvidenceGoalStateGenerator
-from tbp.monty.frameworks.models.motor_policies import BasePolicy
 from tbp.monty.frameworks.models.motor_system import MotorSystem
 from tbp.monty.frameworks.models.sensor_modules import (
     DetailedLoggingSM,
@@ -227,7 +226,7 @@ everything_is_awesome_eval = dict(
         n_eval_epochs=1,
         n_train_epochs=1,
         min_lms_match=1,
-        model_name_or_path="",
+        model_name_or_path=model_path_tbp_robot_lab,
         seed=1337,
         show_sensor_output=False,  # Use this for online visualization
     ),
