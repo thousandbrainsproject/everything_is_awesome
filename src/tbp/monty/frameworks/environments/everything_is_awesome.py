@@ -158,7 +158,6 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         rgba_patch = np.dstack((rgb_patch, alpha_patch))
 
         # Get Depth image and extract the patch
-        # TODO: Figure out the correct values for depth sensor. Do not normalize.
         # Linear transformation coefficients are specific to depth sensor.
         depth = np.array(self._depth_server.depth(size=180), dtype=np.float64)
         depth_patch = self._extract_patch(
