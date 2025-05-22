@@ -34,8 +34,6 @@ from tbp.monty.frameworks.models.motor_system_state import (
     SensorState,
 )
 
-logger = logging.getLogger(__name__)
-
 
 class EverythingIsAwesomeSensorObservation(TypedDict):
     """SensorObservation for the Everything Is Awesome hackathon environment."""
@@ -290,8 +288,11 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         self._update_translate_motor_state()
         self._translate_motor.origin = self._translate_motor.position
 
-        logger.warning(self._orbit_motor)
-        logger.warning(self._translate_motor)
+        # TODO: Set at top of module once importlib.reload(logging) is removed
+        logger = logging.getLogger(__name__)
+
+        logger.info(self._orbit_motor)
+        logger.info(self._translate_motor)
 
         return self._observations()
 

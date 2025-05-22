@@ -70,12 +70,13 @@ class MontyExperiment:
         Args:
             config: config specifying variables of the experiment.
         """
+        self.init_loggers(self.config["logging_config"])
         self.model = self.init_model(
             monty_config=config["monty_config"],
             model_path=self.model_path,
         )
         self.load_dataset_and_dataloaders(config)
-        self.init_loggers(self.config["logging_config"])
+        self.init_monty_data_loggers(self.config["logging_config"])
         self.init_counters()
 
     ####
@@ -309,23 +310,17 @@ class MontyExperiment:
 
     def init_loggers(self, logging_config):
         """Initialize logger with specified log level."""
-        # Add experiment config so config can be passed to wandb
-        all_logging_args = logging_config
-        # all_logging_args.update(config=self.config)
-
-        # Unpack individual logging arguments
-        self.monty_log_level = all_logging_args["monty_log_level"]
-        self.monty_handlers = all_logging_args["monty_handlers"]
-        self.wandb_handlers = all_logging_args["wandb_handlers"]
-        self.python_log_level = all_logging_args["python_log_level"]
-        self.log_to_file = all_logging_args["python_log_to_file"]
-        self.log_to_stdout = all_logging_args["python_log_to_stdout"]
-        self.output_dir = all_logging_args["output_dir"]
-        self.run_name = all_logging_args["run_name"]
+        self.python_log_level = logging_config["python_log_level"]
+        self.log_to_file = logging_config["python_log_to_file"]
+        self.log_to_stdout = logging_config["python_log_to_stdout"]
+        self.output_dir = logging_config["output_dir"]
+        self.run_name = logging_config["run_name"]
 
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 
+        # TODO: Remove this reload. It prevents the standard Python practice of setting
+        #       `logger = logging.getLogger(__name__)` at top of a module.
         # If basic config has been set by a previous experiment, ipython, code editor,
         # or anything else, the config will not be properly set. importlib.reload gets
         # around this and ensures
@@ -340,13 +335,26 @@ class MontyExperiment:
         if self.log_to_stdout:
             python_logging_handlers.append(logging.StreamHandler())
 
+        # TODO: Remove this basicConfig in favor of tbp.monty logger below
         # Configure basic python logging
         logging.basicConfig(
             level=self.python_log_level,
             handlers=python_logging_handlers,
         )
+
+        logger = logging.getLogger("tbp.monty")
+        logger.setLevel(self.python_log_level)
+        # Note: not adding handlers as they were added in the basicConfig above
+        logger.info("logger initialized")
+
         logging.info(f"Logger initialized at {datetime.datetime.now()}")
         logging.debug(pprint.pformat(self.config))
+
+    def init_monty_data_loggers(self, logging_config):
+        """Initialize Monty data loggers."""
+        self.monty_log_level = logging_config["monty_log_level"]
+        self.monty_handlers = logging_config["monty_handlers"]
+        self.wandb_handlers = logging_config["wandb_handlers"]
 
         # Configure Monty logging
         monty_handlers = []
@@ -354,13 +362,13 @@ class MontyExperiment:
         for handler in self.monty_handlers:
             if handler.log_level() == "DETAILED":
                 has_detailed_logger = True
-            handler_args = get_subset_of_args(all_logging_args, handler.__init__)
+            handler_args = get_subset_of_args(logging_config, handler.__init__)
             monty_handler = handler(**handler_args)
             monty_handlers.append(monty_handler)
 
         # Configure wandb logging
         if len(self.wandb_handlers) > 0:
-            wandb_args = get_subset_of_args(all_logging_args, WandbWrapper.__init__)
+            wandb_args = get_subset_of_args(logging_config, WandbWrapper.__init__)
             wandb_args.update(
                 config=self.config,
                 run_name=wandb_args["run_name"] + "_" + wandb_args["wandb_id"],
@@ -407,8 +415,8 @@ class MontyExperiment:
             )
             self.monty_logger = BaseMontyLogger(handlers=[])
 
-        if "log_parallel_wandb" in all_logging_args.keys():
-            self.monty_logger.use_parallel_wandb_logging = all_logging_args[
+        if "log_parallel_wandb" in logging_config.keys():
+            self.monty_logger.use_parallel_wandb_logging = logging_config[
                 "log_parallel_wandb"
             ]
         # Instantiate logging callback handler for custom monty loggers
