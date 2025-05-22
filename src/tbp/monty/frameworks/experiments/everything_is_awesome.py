@@ -14,6 +14,13 @@ from tbp.monty.frameworks.utils.everything_is_awesome_visualizations import (
 
 
 class EverythingIsAwesomeExperiment(MontyExperiment):
+    @property
+    def logger_args(self):
+        args = super().logger_args
+        if self.dataloader is not None:
+            args["target"] = self.dataloader.primary_target
+        return args
+
     def pre_episode(self):
         """Required to pass the primary target object to the model.
 
