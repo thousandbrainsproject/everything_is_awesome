@@ -253,12 +253,12 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
                     "patch.depth": SensorState(
                         # The sensor is fully coupled to the agent's position
                         position=[0.0, 0.0, 0.0],
-                        rotation=[1.0, 0.0, 0.0, 0.0],  # WXYZ
+                        rotation=quaternion.from_float_array([1.0, 0.0, 0.0, 0.0]),
                     ),
                     "patch.rgba": SensorState(
                         # The sensor is fully coupled to the agent's position
                         position=[0.0, 0.0, 0.0],
-                        rotation=[1.0, 0.0, 0.0, 0.0],  # WXYZ
+                        rotation=quaternion.from_float_array([1.0, 0.0, 0.0, 0.0]),
                     ),
                 },
                 position=position,
