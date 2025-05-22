@@ -364,7 +364,9 @@ everything_is_awesome_eval = dict(
         rng=None,
     ),
     eval_dataloader_class=EverythingIsAwesomeDataLoader,
-    eval_dataloader_args={},
+    eval_dataloader_args=dict(
+        object_name="tissue_box",
+    ),
 )
 
 

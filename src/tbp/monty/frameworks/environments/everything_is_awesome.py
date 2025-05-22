@@ -303,6 +303,25 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
 class EverythingIsAwesomeDataLoader(EnvironmentDataLoader):
     """DataLoader for the Everything Is Awesome hackathon environment."""
 
+    def __init__(self, object_name: str, *args, **kwargs) -> None:
+        """Initialize the data loader.
+
+        Args:
+            object_name: The ground truth name of the object presented to the robot.
+            *args: Additional arguments to pass to the parent class.
+            **kwargs: Additional keyword arguments to pass to the parent class.
+        """
+        super().__init__(*args, **kwargs)
+        self._object_name = object_name
+        self.primary_target = {
+            "object": self._object_name,
+            "rotation": np.quaternion(0, 0, 0, 1),
+            "euler_rotation": np.array([0, 0, 0]),
+            "quat_rotation": [0, 0, 0, 1],
+            "position": np.array([0, 0, 0]),
+            "scale": [1.0, 1.0, 1.0],
+        }
+
     def pre_episode(self):
         super().pre_episode()
         self._reset_agent()
