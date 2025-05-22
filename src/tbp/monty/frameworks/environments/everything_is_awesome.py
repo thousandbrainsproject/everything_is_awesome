@@ -249,13 +249,18 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         )
         return ProprioceptiveState(
             agent_id_0=AgentState(
-                sensors=dict(
-                    patch=SensorState(
+                sensors={
+                    "patch.depth": SensorState(
                         # The sensor is fully coupled to the agent's position
                         position=[0.0, 0.0, 0.0],
                         rotation=[1.0, 0.0, 0.0, 0.0],  # WXYZ
-                    )
-                ),
+                    ),
+                    "patch.rgba": SensorState(
+                        # The sensor is fully coupled to the agent's position
+                        position=[0.0, 0.0, 0.0],
+                        rotation=[1.0, 0.0, 0.0, 0.0],  # WXYZ
+                    ),
+                },
                 position=position,
                 rotation=rotation,
             )
