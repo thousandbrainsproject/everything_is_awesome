@@ -45,7 +45,6 @@ from tbp.monty.frameworks.config_utils.make_dataset_configs import (
 )
 from tbp.monty.frameworks.environment_utils.transforms import (
     DepthTo3DLocations,
-    MissingToMaxDepth,
 )
 from tbp.monty.frameworks.environments.embodied_data import EnvironmentDataset
 from tbp.monty.frameworks.environments.everything_is_awesome import (
@@ -208,6 +207,8 @@ randrot_noise_surf_sim_on_scan_tbp_robot_lab.update(
 ACTUATOR_SERVER_URI = "PYRO:motor@192.168.0.235:3514"
 AGENT_ID = "agent_id_0"
 DEPTH_SERVER_URI = "PYRO:depth@192.168.0.235:3513"
+DEPTH_CLIP_VALUE_RR = 1.8  # Based on physical measurements
+"""The depth value to clip observations that miss the object."""
 PITCH_DIAMETER_RR = 0.12318841  # Based on physical measurements
 """The pitch diameter in units of robot_radius."""
 RGB_SERVER_URI = "PYRO:rgb@192.168.0.143:3512"
@@ -349,14 +350,15 @@ everything_is_awesome_eval = dict(
             rgb_server_uri=RGB_SERVER_URI,
         ),
         transform=[
-            MissingToMaxDepth(agent_id=AGENT_ID, max_depth=1),
             DepthTo3DLocations(
                 agent_id=AGENT_ID,
-                sensor_ids=[SENSOR_ID],
-                resolutions=[SENSOR_RESOLUTION],
-                world_coord=True,
+                clip_value=DEPTH_CLIP_VALUE_RR,
+                depth_clip_sensors=[SENSOR_ID],
                 get_all_points=True,
+                resolutions=[SENSOR_RESOLUTION],
+                sensor_ids=[SENSOR_ID],
                 use_semantic_sensor=False,
+                world_coord=True,
             ),
         ],
         rng=None,

@@ -233,6 +233,7 @@ class DepthTo3DLocations:
 
     Attributes:
         agent_id: Agent ID to get observations from
+        sensor_ids: Sensor IDs to which to apply the transform
         resolution: Camera resolution (H, W)
         zoom: Camera zoom factor. Defaul 1.0 (no zoom)
         hfov: Camera HFOV, default 90 degrees
@@ -244,9 +245,9 @@ class DepthTo3DLocations:
             Default True.
         get_all_points: Whether to return all 3D coordinates or only the ones
             that land on an object.
-        depth_clip_sensors: tuple of sensor indices to which to apply a clipping
+        depth_clip_sensors: Sensor IDs to which to apply a clipping
             transform where all values > clip_value are set to
-            clip_value. Empty tuple ~ apply to none of them.
+            clip_value.
         clip_value: depth parameter for the clipping transform
 
     Warning:
@@ -261,7 +262,7 @@ class DepthTo3DLocations:
         zooms=1.0,
         hfov=90.0,
         clip_value=0.05,
-        depth_clip_sensors=(),
+        depth_clip_sensors=None,
         world_coord=True,
         get_all_points=False,
         use_semantic_sensor=False,
@@ -308,7 +309,9 @@ class DepthTo3DLocations:
         self.get_all_points = get_all_points
         self.use_semantic_sensor = use_semantic_sensor
         self.clip_value = clip_value
-        self.depth_clip_sensors = depth_clip_sensors
+        self.depth_clip_sensors = (
+            [] if depth_clip_sensors is None else depth_clip_sensors
+        )
 
     def __call__(self, observations: dict, state: Optional[State] = None):
         """Apply the depth-to-3D-locations transform to sensor observations.
@@ -399,7 +402,7 @@ class DepthTo3DLocations:
 
             # Apply depth clipping to the surface agent, and initialize the
             # surface-separation threshold for later use.
-            if i in self.depth_clip_sensors:
+            if sensor_id in self.depth_clip_sensors:
                 # Surface agent: clip depth and semantic data (in place), and set
                 # the default surface-separation threshold to be very short.
                 self.clip(depth_patch, semantic_patch)
