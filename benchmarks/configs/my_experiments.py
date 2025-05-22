@@ -208,7 +208,8 @@ randrot_noise_surf_sim_on_scan_tbp_robot_lab.update(
 ACTUATOR_SERVER_URI = "PYRO:motor@192.168.0.235:3514"
 AGENT_ID = "agent_id_0"
 DEPTH_SERVER_URI = "PYRO:depth@192.168.0.235:3513"
-PITCH_DIAMETER_R = 0.12318841  # Based on physical measurements
+PITCH_DIAMETER_RR = 0.12318841  # Based on physical measurements
+"""The pitch diameter in units of robot_radius."""
 RGB_SERVER_URI = "PYRO:rgb@192.168.0.143:3512"
 SENSOR_ID = "patch"
 SENSOR_RESOLUTION = [70, 70]
@@ -344,7 +345,7 @@ everything_is_awesome_eval = dict(
         env_init_args=dict(
             actuator_server_uri=ACTUATOR_SERVER_URI,
             depth_server_uri=DEPTH_SERVER_URI,
-            pitch_diameter_r=PITCH_DIAMETER_R,
+            pitch_diameter_rr=PITCH_DIAMETER_RR,
             rgb_server_uri=RGB_SERVER_URI,
         ),
         transform=[

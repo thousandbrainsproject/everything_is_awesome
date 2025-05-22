@@ -70,7 +70,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         self,
         actuator_server_uri: str,
         depth_server_uri: str,
-        pitch_diameter_r: float,
+        pitch_diameter_rr: float,
         rgb_server_uri: str,
     ) -> None:
         """Initialize the Everything Is Awesome environment.
@@ -78,19 +78,19 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         Args:
             actuator_server_uri: The URI of the actuator server.
             depth_server_uri: The URI of the depth server.
-            pitch_diameter_r: The pitch diameter in units of radii. One radius is the
-                distance between the sensor and the center of the platform that the
-                robot can rotate around.
+            pitch_diameter_rr: The pitch diameter in units of robot_radius. One
+                robot_radius is the distance between the sensor and the center of the
+                platform that the robot can rotate around.
             rgb_server_uri: The URI of the rgb server.
         """
         self._actuator_server = cast(
             Union[ActuatorProtocol, ProprioceptionProtocol],
             Pyro5.api.Proxy(actuator_server_uri),
         )
-        self._pitch_diameter_r = pitch_diameter_r
+        self._pitch_diameter_rr = pitch_diameter_rr
         self._actuator = EverythingIsAwesomeActuator(
             actuator_server=self._actuator_server,
-            pitch_diameter_r=self._pitch_diameter_r,
+            pitch_diameter_rr=self._pitch_diameter_rr,
         )
         self._proprioception_server = cast(
             ProprioceptionProtocol, self._actuator_server
@@ -216,9 +216,9 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         is [-1,0,0] in XYZ format. That is, the robot is at location [1,0,0] and
         facing the origin, looking down the negative X axis.
 
-        The units of the coordinate system are radii. So, that location [1,0,0] places
-        the robot on the unit circle, on the positive X axis, 1 radius away from the
-        origin.
+        The units of the coordinate system are robot_radius. So, that location [1,0,0]
+        places the robot on the unit circle, on the positive X axis, 1 robot_radius away
+        from the origin.
 
         Returns:
             ProprioceptiveState: The Monty proprioceptive state.
@@ -234,7 +234,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
             self._translate_motor.position - self._translate_motor.origin
         )
         translate_radians = np.radians(translate_degrees)
-        z_pos = translate_radians * self._pitch_diameter_r
+        z_pos = translate_radians * self._pitch_diameter_rr
         position = [x_pos, y_pos, z_pos]
 
         # rotation from [-1,0,0] to [-x_pos, -y_pos, z_pos]
@@ -288,7 +288,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         self._update_translate_motor_state()
         self._translate_motor.origin = self._translate_motor.position
 
-        # TODO: Set at top of module once importlib.reload(logging) is removed
+        # Note: Set at top of module once importlib.reload(logging) is removed
         logger = logging.getLogger(__name__)
 
         logger.info(self._orbit_motor)
@@ -371,36 +371,36 @@ class EverythingIsAwesomeActuator:
     MAX_GRAVITY_ASSISTED_ROTATION = 0.1  # Empirically determined
 
     def __init__(
-        self, actuator_server: ActuatorProtocol, pitch_diameter_r: float
+        self, actuator_server: ActuatorProtocol, pitch_diameter_rr: float
     ) -> None:
         self._actuator_server = actuator_server
-        self._pitch_diameter_r = pitch_diameter_r
-        """The pitch diamater in units of radii.
+        self._pitch_diameter_rr = pitch_diameter_rr
+        """The pitch diamater in units of robot_radius.
 
-        One radius is the distance between the sensor and the center of the platform
-        that the robot can rotate around.
+        One robot_radius is the distance between the sensor and the center of the
+        platform that the robot can rotate around.
 
         Note:
-            The radius is 276mm.
-            The pitch radius is 17mm, pitch diameter is 34mm.
-            The pitch diameter in radii is 34mm / 276mm = 0.12318841.
+            The robot_radius is 276mm.
+            The pitch diameter is 17mm, pitch diameter is 34mm.
+            The pitch diameter in robot_radius is 34mm / 276mm = 0.12318841.
         """
-        self._min_distance_r = (
+        self._min_distance_rr = (
             np.pi
-            * self._pitch_diameter_r
+            * self._pitch_diameter_rr
             * min(self.MIN_AGAINST_GRAVITY_ROTATION, self.MIN_GRAVITY_ASSISTED_ROTATION)
         )
 
-    def _distance_to_rotations(self, distance_r: float) -> float:
-        """Convert a distance in radii to rotations.
+    def _distance_to_rotations(self, distance_rr: float) -> float:
+        """Convert a distance in robot_radius to rotations.
 
         Args:
-            distance_r: The distance in radii.
+            distance_rr: The distance in robot_radius.
 
         Returns:
             The distance in rotations.
         """
-        return distance_r / (np.pi * self._pitch_diameter_r)
+        return distance_rr / (np.pi * self._pitch_diameter_rr)
 
     def actuate_orbit_left(self, action: OrbitLeft) -> None:
         self._actuator_server.run_for_degrees(
