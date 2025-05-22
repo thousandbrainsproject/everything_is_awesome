@@ -129,15 +129,12 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         Returns:
           numpy.array: A 2D array representing the extracted patch.
         """
-        img_array = np.array(img).astype("uint8")
         if resize_to is not None:
-            img_array = cv2.resize(
-                img_array, resize_to, interpolation=cv2.INTER_NEAREST
-            )
+            img = cv2.resize(img, resize_to, interpolation=cv2.INTER_NEAREST)
 
         start_x, start_y = start_pos
         end_x, end_y = start_x + side, start_y + side
-        patch = img_array[start_y:end_y, start_x:end_x]
+        patch = img[start_y:end_y, start_x:end_x]
         return patch
 
     def _observations(self) -> EverythingIsAwesomeObservations:
@@ -153,7 +150,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
             observations, as well as other relevant information.
         """
         # Get RGB image and extract the patch
-        rgb = self._rgb_server.rgb(size=600)
+        rgb = np.array(self._rgb_server.rgb(size=600), dtype=np.uint8)
         rgb_patch = self._extract_patch(rgb, start_pos=(250, 250))
 
         # stack alpha channel with 255 to the rgb
@@ -163,11 +160,11 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         # Get Depth image and extract the patch
         # TODO: Figure out the correct values for depth sensor. Do not normalize.
         # Linear transformation coefficients are specific to depth sensor.
-        depth = self._depth_server.depth(size=180)
+        depth = np.array(self._depth_server.depth(size=180), dtype=np.float64)
         depth_patch = self._extract_patch(
             depth, resize_to=(1000, 1000), start_pos=(550, 350)
         )
-        depth_patch = 0.0037037 * depth_patch + 0.814815
+        depth_patch = 0.003846 * depth_patch - 0.1569
 
         return EverythingIsAwesomeObservations(
             agent_id_0=EverythingIsAwesomeAgentObservation(
