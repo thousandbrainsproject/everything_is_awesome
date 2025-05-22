@@ -8,12 +8,15 @@
 # https://opensource.org/licenses/MIT.
 from __future__ import annotations
 
+import logging
+import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol, TypedDict, Union, cast
 
 import numpy as np
 import Pyro5.api
+import quaternion
 from numpy.random import Generator
 
 from tbp.monty.frameworks.actions.action_samplers import ActionSampler
@@ -29,6 +32,8 @@ from tbp.monty.frameworks.models.motor_system_state import (
     ProprioceptiveState,
     SensorState,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class EverythingIsAwesomeSensorObservation(TypedDict):
@@ -52,9 +57,11 @@ class EverythingIsAwesomeObservations(TypedDict):
 
 @dataclass
 class MotorState:
-    speed: int
-    position: int
-    absolute_position: int
+    id: Motor
+    absolute_position: int = 0
+    origin: int = 0
+    position: int = 0
+    speed: int = 0
 
 
 class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
@@ -81,9 +88,10 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
             Union[ActuatorProtocol, ProprioceptionProtocol],
             Pyro5.api.Proxy(actuator_server_uri),
         )
+        self._pitch_diameter_r = pitch_diameter_r
         self._actuator = EverythingIsAwesomeActuator(
             actuator_server=self._actuator_server,
-            pitch_diameter_r=pitch_diameter_r,
+            pitch_diameter_r=self._pitch_diameter_r,
         )
         self._proprioception_server = cast(
             ProprioceptionProtocol, self._actuator_server
@@ -91,26 +99,11 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         self._depth_server = cast(DepthProtocol, Pyro5.api.Proxy(depth_server_uri))
         self._rgb_server = cast(RgbProtocol, Pyro5.api.Proxy(rgb_server_uri))
 
-        orbit_speed = self._proprioception_server.speed(Motor.ORBIT)
-        orbit_position = self._proprioception_server.position(Motor.ORBIT)
-        orbit_absolute_position = self._proprioception_server.absolute_position(
-            Motor.ORBIT
-        )
-        self._orbit_motor = MotorState(
-            speed=orbit_speed,
-            position=orbit_position,
-            absolute_position=orbit_absolute_position,
-        )
-        translate_speed = self._proprioception_server.speed(Motor.TRANSLATE)
-        translate_position = self._proprioception_server.position(Motor.TRANSLATE)
-        translate_absolute_position = self._proprioception_server.absolute_position(
-            Motor.TRANSLATE
-        )
-        self._translate_motor = MotorState(
-            speed=translate_speed,
-            position=translate_position,
-            absolute_position=translate_absolute_position,
-        )
+        self._orbit_motor = MotorState(id=Motor.ORBIT)
+        self._translate_motor = MotorState(id=Motor.TRANSLATE)
+
+        self._update_orbit_motor_state()
+        self._update_translate_motor_state()
 
     @property
     def action_space(self) -> ActionSpace:
@@ -136,15 +129,79 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
             )
         )
 
+    def _update_orbit_motor_state(self) -> None:
+        """Updates the orbit motor state from the proprioception server.
+
+        Only updates the absolute position, position, and speed.
+        """
+        self._orbit_motor.absolute_position = (
+            self._proprioception_server.absolute_position(Motor.ORBIT)
+        )
+        self._orbit_motor.position = self._proprioception_server.position(Motor.ORBIT)
+        self._orbit_motor.speed = self._proprioception_server.speed(Motor.ORBIT)
+
+    def _update_translate_motor_state(self) -> None:
+        """Updates the translate motor state from the proprioception server.
+
+        Only updates the absolute position, position, and speed.
+        """
+        self._translate_motor.absolute_position = (
+            self._proprioception_server.absolute_position(Motor.TRANSLATE)
+        )
+        self._translate_motor.position = self._proprioception_server.position(
+            Motor.TRANSLATE
+        )
+        self._translate_motor.speed = self._proprioception_server.speed(Motor.TRANSLATE)
+
     def step(self, action: Action) -> EverythingIsAwesomeObservations:
         action.act(self._actuator)
         return self._observations()
 
     def get_state(self) -> ProprioceptiveState:
-        position = None
-        rotation = None
-        # TODO: request state from self._proprioception_server
-        #       and calculate position vector and rotation quaternion
+        """Get the Monty proprioceptive state from the environment.
+
+        The coordinate origin is located above the orbit motor, inline with the
+        bottom-most position of the camera sensors.
+
+        In the reset position, the translate motor is at a minimum position possible.
+        The orbit motor is at an arbitrary position it considers to be 0 degrees.
+        The default orientation of the robot from which all rotations are calculated
+        is [-1,0,0] in XYZ format. That is, the robot is at location [1,0,0] and
+        facing the origin, looking down the negative X axis.
+
+        The units of the coordinate system are radii. So, that location [1,0,0] places
+        the robot on the unit circle, on the positive X axis, 1 radius away from the
+        origin.
+
+        Returns:
+            ProprioceptiveState: The Monty proprioceptive state.
+        """
+        self._update_orbit_motor_state()
+        self._update_translate_motor_state()
+
+        orbit_degrees = self._orbit_motor.position - self._orbit_motor.origin
+        orbit_radians = np.radians(orbit_degrees)
+        x_pos = np.cos(orbit_radians)
+        y_pos = np.sin(orbit_radians)
+        translate_degrees = (
+            self._translate_motor.position - self._translate_motor.origin
+        )
+        translate_radians = np.radians(translate_degrees)
+        z_pos = translate_radians * self._pitch_diameter_r
+        position = [x_pos, y_pos, z_pos]
+
+        # rotation from [-1,0,0] to [-x_pos, -y_pos, z_pos]
+        # Note: simpler due to x_pos and y_pos being on the unit circle
+        rotation = quaternion.from_float_array(
+            np.array(
+                [
+                    np.cos(orbit_radians / 2),
+                    0,
+                    0,
+                    np.sign(y_pos) * np.sin(orbit_radians / 2),
+                ]
+            )
+        )
         return ProprioceptiveState(
             agent_id_0=AgentState(
                 sensors=dict(
@@ -175,7 +232,17 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
             curr_pos = self._proprioception_server.position(Motor.TRANSLATE)
 
         # reset to the arbitrary starting position
+        self._actuator_server.run_for_degrees(motor=Motor.ORBIT, degrees=45.0)
+        time.sleep(0.5)
         self._actuator_server.run_to_position(motor=Motor.ORBIT, degrees=0.0)
+        time.sleep(0.5)
+        self._update_orbit_motor_state()
+        self._orbit_motor.origin = self._orbit_motor.position
+        self._update_translate_motor_state()
+        self._translate_motor.origin = self._translate_motor.position
+
+        logger.warning(self._orbit_motor)
+        logger.warning(self._translate_motor)
 
         return self._observations()
 
