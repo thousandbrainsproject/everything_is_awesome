@@ -162,10 +162,12 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
 
         # Get Depth image and extract the patch
         # TODO: Figure out the correct values for depth sensor. Do not normalize.
+        # Linear transformation coefficients are specific to depth sensor.
         depth = self._depth_server.depth(size=180)
         depth_patch = self._extract_patch(
             depth, resize_to=(1000, 1000), start_pos=(550, 350)
         )
+        depth_patch = 0.0037037 * depth_patch + 0.814815
 
         return EverythingIsAwesomeObservations(
             agent_id_0=EverythingIsAwesomeAgentObservation(
