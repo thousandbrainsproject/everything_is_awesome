@@ -211,7 +211,7 @@ DEPTH_SERVER_URI = "PYRO:depth@192.168.0.235:3513"
 PITCH_DIAMETER_R = 0.12318841  # Based on physical measurements
 RGB_SERVER_URI = "PYRO:rgb@192.168.0.143:3512"
 SENSOR_ID = "patch"
-SENSOR_RESOLUTION = [64, 64]
+SENSOR_RESOLUTION = [70, 70]
 
 everything_is_awesome_eval = dict(
     experiment_class=EverythingIsAwesomeExperiment,
