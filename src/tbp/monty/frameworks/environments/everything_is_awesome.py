@@ -232,7 +232,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
             curr_pos = self._proprioception_server.position(Motor.TRANSLATE)
 
         # reset to the arbitrary starting position
-        self._actuator_server.run_for_degrees(motor=Motor.ORBIT, degrees=45.0)
+        self._actuator_server.run_to_position(motor=Motor.ORBIT, degrees=45.0)
         time.sleep(0.5)
         self._actuator_server.run_to_position(motor=Motor.ORBIT, degrees=0.0)
         time.sleep(0.5)
