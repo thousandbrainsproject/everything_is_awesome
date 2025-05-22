@@ -94,7 +94,7 @@ TBP_ROBOT_LAB_OBJECTS = [
 
 # ============== TRAINING CONFIGS ===============
 
-monty_models_dir = os.getenv("MONTY_MODELS")
+monty_models_dir = os.path.expanduser(os.getenv("MONTY_MODELS"))
 pretrained_dir = os.path.expanduser(
     os.path.join(monty_models_dir, "pretrained_robot_v1")
 )
