@@ -38,7 +38,7 @@ class EverythingIsAwesomeVisualizer(vedo.Plotter):
         self,
         position: np.ndarray,
         orientation: np.ndarray,
-        forward_axis: np.ndarray = np.array([0, -1, 0]),
+        forward_axis: np.ndarray = np.array([-1, 0, 0]),
         up_axis: np.ndarray = np.array([0, 0, 1]),
     ):
         forward_world = orientation.apply(forward_axis)

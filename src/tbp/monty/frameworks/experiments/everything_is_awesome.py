@@ -7,6 +7,8 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT.
 
+from scipy.spatial.transform import Rotation
+
 from tbp.monty.frameworks.experiments.monty_experiment import MontyExperiment
 from tbp.monty.frameworks.utils.everything_is_awesome_visualizations import (
     EverythingIsAwesomeVisualizer,
@@ -37,5 +39,35 @@ class EverythingIsAwesomeExperiment(MontyExperiment):
         self.logger_handler.pre_episode(self.logger_args)
 
         if self.show_sensor_output:
-            # self.initialize_online_plotting()
             self.online_visualizer = EverythingIsAwesomeVisualizer(axes=True)
+
+    def post_step(self, step, observation):
+        """Hook for anything you want to do after a step."""
+        super().post_step(step, observation)
+
+        if self.show_sensor_output:
+            agent_state = self.dataset.env.get_state()
+            agent_position = agent_state["agent_id_0"]["position"]
+            agent_rotation_quat = agent_state["agent_id_0"]["rotation"]
+            agent_rotation = Rotation.from_quat(
+                [
+                    agent_rotation_quat.x,
+                    agent_rotation_quat.y,
+                    agent_rotation_quat.z,
+                    agent_rotation_quat.w,
+                ]
+            )
+
+            current_mlh = self.model.learning_modules[0].current_mlh
+            mlh_object = current_mlh["graph_id"]
+            mlh_location = current_mlh["location"]
+            mlh_rotation = current_mlh["rotation"]
+
+            glb_path = "/home/ramy/tbp/data/habitat/objects/ycb/meshes/025_mug/google_16k/textured.glb.orig"
+
+            self.online_visualizer.update_data(
+                glb_path,
+                object_orientation=mlh_rotation,
+                agent_position=agent_position,
+                agent_orientation=agent_rotation,
+            )
