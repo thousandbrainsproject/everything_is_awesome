@@ -323,6 +323,9 @@ class EverythingIsAwesomeDataLoader(EnvironmentDataLoader):
             "scale": [1.0, 1.0, 1.0],
         }
 
+    def __iter__(self):
+        pass
+
     def pre_episode(self):
         super().pre_episode()
         self._reset_agent()
