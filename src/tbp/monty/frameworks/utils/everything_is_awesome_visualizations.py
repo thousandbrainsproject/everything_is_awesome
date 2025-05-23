@@ -8,7 +8,6 @@
 # https://opensource.org/licenses/MIT.
 
 import os
-import time
 
 import numpy as np
 import trimesh
@@ -19,19 +18,34 @@ class EverythingIsAwesomeTrainVisualizer(vedo.Plotter):
     def __init__(self, axes=False):
         super().__init__()
         self.show_axes = axes
-        self.obj = None
+        self.graph_obj = None
+        self.agent_obj = None
 
-    def update_data(self, graph):
+    def update_data(self, graph, agent_position, interactive=False):
         self.clear_scene()
-        self.obj = vedo.Points(graph, r=5).c("black")
-        self.add(self.obj)
+
+        # add graph points
+        self.graph_obj = vedo.Points(graph, r=5).c("black")
+        self.add(self.graph_obj)
+
+        # add agent
+        self.agent_obj = self.add_agent(agent_position)
+        self.add(self.agent_obj)
+
         self.render()
-        self.show(resetcam=True, interactive=True, axes=self.show_axes)
+        self.show(resetcam=True, interactive=interactive, axes=self.show_axes)
+
+    def add_agent(self, position):
+        return vedo.Cube(side=0.1).scale(0.1).pos(position).color("red")
 
     def clear_scene(self):
-        if self.obj is not None:
-            self.remove(self.obj)
-            self.obj = None
+        if self.graph_obj is not None:
+            self.remove(self.graph_obj)
+            self.graph_obj = None
+
+        if self.agent_obj is not None:
+            self.remove(self.agent_obj)
+            self.agent_obj = None
 
 
 class EverythingIsAwesomeEvalVisualizer(vedo.Plotter):
@@ -60,7 +74,6 @@ class EverythingIsAwesomeEvalVisualizer(vedo.Plotter):
         self.set_object_orientation(orientation=object_orientation)
 
         self.show(resetcam=False, interactive=False, axes=self.show_axes)
-        time.sleep(0.01)
 
     def find_glb_orig(self, data_dir, object_name):
         """Searches for the .glb.orig file of a given YCB object in a directory.

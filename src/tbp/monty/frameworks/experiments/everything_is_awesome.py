@@ -51,7 +51,28 @@ class EverythingIsAwesomeTrainExperiment(MontyExperiment):
 
         if self.show_sensor_output:
             graph = self.model.learning_modules[0].buffer.locations["patch"]
-            self.online_visualizer.update_data(graph=graph)
+
+            agent_state = self.dataset.env.get_state()
+            agent_position = agent_state["agent_id_0"]["position"]
+
+            self.online_visualizer.update_data(
+                graph=graph, agent_position=agent_position
+            )
+
+    def post_episode(self, steps):
+        super().post_episode(steps)
+
+        if self.show_sensor_output:
+            graph = (
+                self.model.learning_modules[0]
+                .graph_memory.models_in_memory["potted_meat_can"]["patch"]
+                .pos
+            )
+            agent_state = self.dataset.env.get_state()
+            agent_position = agent_state["agent_id_0"]["position"]
+            self.online_visualizer.update_data(
+                graph=graph, agent_position=agent_position, interactive=True
+            )
 
 
 class EverythingIsAwesomeExperiment(MontyExperiment):
