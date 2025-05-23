@@ -11,7 +11,8 @@ from scipy.spatial.transform import Rotation
 
 from tbp.monty.frameworks.experiments.monty_experiment import MontyExperiment
 from tbp.monty.frameworks.utils.everything_is_awesome_visualizations import (
-    EverythingIsAwesomeVisualizer,
+    EverythingIsAwesomeEvalVisualizer,
+    EverythingIsAwesomeTrainVisualizer,
 )
 
 
@@ -42,7 +43,15 @@ class EverythingIsAwesomeTrainExperiment(MontyExperiment):
         self.logger_handler.pre_episode(self.logger_args)
 
         if self.show_sensor_output:
-            self.online_visualizer = EverythingIsAwesomeVisualizer(axes=True)
+            self.online_visualizer = EverythingIsAwesomeTrainVisualizer(axes=True)
+
+    def post_step(self, step, observation):
+        """Hook for anything you want to do after a step."""
+        super().post_step(step, observation)
+
+        if self.show_sensor_output:
+            graph = self.model.learning_modules[0].buffer.locations["patch"]
+            self.online_visualizer.update_data(graph=graph)
 
 
 class EverythingIsAwesomeExperiment(MontyExperiment):
@@ -69,7 +78,7 @@ class EverythingIsAwesomeExperiment(MontyExperiment):
         self.logger_handler.pre_episode(self.logger_args)
 
         if self.show_sensor_output:
-            self.online_visualizer = EverythingIsAwesomeVisualizer(axes=True)
+            self.online_visualizer = EverythingIsAwesomeEvalVisualizer(axes=True)
 
     def post_step(self, step, observation):
         """Hook for anything you want to do after a step."""

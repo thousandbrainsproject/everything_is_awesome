@@ -1,3 +1,12 @@
+# Copyright 2025 Thousand Brains Project
+#
+# Copyright may exist in Contributors' modifications
+# and/or contributions to the work.
+#
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE file or at
+# https://opensource.org/licenses/MIT.
+
 import os
 import time
 
@@ -6,7 +15,26 @@ import trimesh
 import vedo
 
 
-class EverythingIsAwesomeVisualizer(vedo.Plotter):
+class EverythingIsAwesomeTrainVisualizer(vedo.Plotter):
+    def __init__(self, axes=False):
+        super().__init__()
+        self.show_axes = axes
+        self.obj = None
+
+    def update_data(self, graph):
+        self.clear_scene()
+        self.obj = vedo.Points(graph, r=5).c("black")
+        self.add(self.obj)
+        self.render()
+        self.show(resetcam=True, interactive=True, axes=self.show_axes)
+
+    def clear_scene(self):
+        if self.obj is not None:
+            self.remove(self.obj)
+            self.obj = None
+
+
+class EverythingIsAwesomeEvalVisualizer(vedo.Plotter):
     def __init__(self, axes=False):
         super().__init__()
         self.show_axes = axes
@@ -115,30 +143,3 @@ class EverythingIsAwesomeVisualizer(vedo.Plotter):
         # add mesh to plotter
         self.obj = obj
         self.add(obj)
-
-    def add_sensor(self):
-        self.camera_position = (0.1, 0.1, 0.1)  # Position of the camera in 3D space
-        self.focal_point = (0, 0, 0)  # The point the camera is looking at
-
-        self.cam = (
-            vedo.Cube(side=0.1).scale(0.05).pos(self.camera_position).color("red")
-        )
-        self.line = (
-            vedo.Line(self.camera_position, self.focal_point).color("black").lw(2)
-        )
-
-        self.add(self.cam)
-        self.add(self.line)
-
-
-if __name__ == "__main__":
-    mug_glb_path = "/home/ramy/tbp/data/habitat/objects/ycb/meshes/025_mug/google_16k/textured.glb.orig"
-    vis = EverythingIsAwesomeVisualizer(axes=False)
-
-    for i in range(10):
-        vis.update_data(
-            mug_glb_path,
-            object_orientation=(0, 0, 0),
-            agent_position=(0, 1.5, i / 100),
-            agent_orientation=(0, 0, 0),
-        )
