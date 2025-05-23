@@ -19,6 +19,7 @@ import numpy as np
 import Pyro5.api
 import quaternion
 from numpy.random import Generator
+from scipy.spatial.transform import Rotation as R
 
 from tbp.monty.frameworks.actions.action_samplers import ActionSampler
 from tbp.monty.frameworks.actions.actions import Action
@@ -223,11 +224,11 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         In the reset position, the translate motor is at a minimum position possible.
         The orbit motor is at an arbitrary position it considers to be 0 degrees.
         The default orientation of the robot from which all rotations are calculated
-        is [-1,0,0] in XYZ format. That is, the robot is at location [1,0,0] and
-        facing the origin, looking down the negative X axis.
+        is [0,0,-1] in XYZ format. That is, the robot is at location [0,0,1] and
+        facing the origin, looking down the negative Z axis.
 
-        The units of the coordinate system are robot_radius. So, that location [1,0,0]
-        places the robot on the unit circle, on the positive X axis, 1 robot_radius away
+        The units of the coordinate system are robot_radius. So, that location [0,0,1]
+        places the robot on the unit circle, on the positive Z axis, 1 robot_radius away
         from the origin.
 
         Returns:
@@ -238,27 +239,22 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
 
         orbit_degrees = self._orbit_motor.position - self._orbit_motor.origin
         orbit_radians = np.radians(orbit_degrees)
-        x_pos = np.cos(orbit_radians)
-        y_pos = np.sin(orbit_radians)
+        z_pos = np.cos(orbit_radians)
+        x_pos = np.sin(orbit_radians)
         translate_degrees = (
             self._translate_motor.position - self._translate_motor.origin
         )
         translate_radians = np.radians(translate_degrees)
-        z_pos = translate_radians * self._pitch_diameter_rr
+        y_pos = translate_radians * self._pitch_diameter_rr
         position = [x_pos, y_pos, z_pos]
 
-        # rotation from [-1,0,0] to [-x_pos, -y_pos, z_pos]
+        # Simple rotation around the y-axis. This assumes agent starts at
+        # an orientation facing the object.
         # Note: simpler due to x_pos and y_pos being on the unit circle
-        rotation = quaternion.from_float_array(
-            np.array(
-                [
-                    np.cos(orbit_radians / 2),
-                    0,
-                    0,
-                    np.sign(y_pos) * np.sin(orbit_radians / 2),
-                ]
-            )
-        )
+        orientation = R.from_euler("y", orbit_radians, degrees=False)
+        orientation_quat = orientation.as_quat()
+        rotation = quaternion.from_float_array(np.array(orientation_quat.tolist()))
+
         return ProprioceptiveState(
             agent_id_0=AgentState(
                 sensors={
