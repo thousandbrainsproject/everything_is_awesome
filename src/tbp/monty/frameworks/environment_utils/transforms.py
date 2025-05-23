@@ -622,14 +622,12 @@ class DepthTo3DLocations:
         Returns:
             sensor patch shaped info about whether each pixel is on surface of not
         """
-        # avoid large range when seeing the table (goes up to almost 100 and then
-        # just using 8 bins will not work anymore)
         depth_patch = np.array(depth_patch)
-        depth_patch[depth_patch > 1] = 1.0
+        depth_patch[depth_patch > self.void_value] = self.void_value
 
-        # If all depth values are at maximum (1.0), then we are automatically
-        # off-object.
-        if np.all(depth_patch >= 1.0):
+        # If all depth values are at maximum self.void_value, then we are
+        # automatically off-object.
+        if np.all(depth_patch >= self.void_value):
             return np.zeros_like(depth_patch, dtype=bool)
 
         # Compute the on-suface depth threshold (and whether we need to flip the
