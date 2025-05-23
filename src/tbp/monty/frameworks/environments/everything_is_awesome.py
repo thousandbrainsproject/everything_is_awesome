@@ -116,7 +116,6 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
     def close(self):
         pass
 
-    @measure_time(__name__)
     def _extract_patch(self, img, side=70, resize_to=None, start_pos=(0, 0)):
         """Extracts a patch from the given image.
 
@@ -178,17 +177,14 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
             )
         )
 
-    @measure_time(__name__)
     def _rgb(self) -> np.ndarray:
         rgb = np.array(self._rgb_server.rgb(size=100), dtype=np.uint8)
         return rgb
 
-    @measure_time(__name__)
     def _depth(self) -> np.ndarray:
         depth = np.array(self._depth_server.depth(size=180), dtype=np.float64)
         return depth
 
-    @measure_time(__name__)
     def _update_orbit_motor_state(self) -> None:
         """Updates the orbit motor state from the proprioception server.
 
@@ -200,7 +196,6 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         self._orbit_motor.position = self._proprioception_server.position(Motor.ORBIT)
         self._orbit_motor.speed = self._proprioception_server.speed(Motor.ORBIT)
 
-    @measure_time(__name__)
     def _update_translate_motor_state(self) -> None:
         """Updates the translate motor state from the proprioception server.
 
@@ -219,7 +214,6 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         action.act(self._actuator)
         return self._observations()
 
-    @measure_time(__name__)
     def get_state(self) -> ProprioceptiveState:
         """Get the Monty proprioceptive state from the environment.
 
@@ -383,8 +377,11 @@ class EverythingIsAwesomeTrainingPolicy(BasePolicy):
 
         Returns:
             OrbitLeft | OrbitRight | TranslateUp: An action to take.
+
+        Raises:
+            StopIteration: If the policy is done scanning.
         """
-        while self._level < 3:
+        if self._level < 3:
             if self._rotation_degrees < 360:
                 self._rotation_degrees += self._orbit_step
                 return OrbitRight(agent_id=self.agent_id, degrees=self._orbit_step)
@@ -395,8 +392,8 @@ class EverythingIsAwesomeTrainingPolicy(BasePolicy):
                     agent_id=self.agent_id, distance=self._translate_step
                 )
 
-        # We are done scanning, now waiting for the experiment to end
-        return OrbitLeft(agent_id=self.agent_id, degrees=self._orbit_step)
+        # I am not proud of this, but... hackathon.
+        raise StopIteration()
 
 
 class EverythingIsAwesomeActionSampler(ActionSampler):

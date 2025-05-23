@@ -108,7 +108,6 @@ class EnvironmentDataset(Dataset):
             observation = transform(observation, state)
         return observation
 
-    @measure_time(__name__)
     def __getitem__(self, action: Action):
         observation = self.env.step(action)
         state = self.env.get_state()
