@@ -155,7 +155,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         """
         # Get RGB image and extract the patch
         rgb = self._rgb()
-        rgb_patch = self._extract_patch(rgb, start_pos=(250, 250))
+        rgb_patch = self._extract_patch(rgb, start_pos=(0, 0))
 
         # stack alpha channel with 255 to the rgb
         alpha_patch = np.full(rgb_patch.shape[:2], 255, dtype=rgb_patch.dtype)
@@ -180,7 +180,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
 
     @measure_time(__name__)
     def _rgb(self) -> np.ndarray:
-        rgb = np.array(self._rgb_server.rgb(size=600), dtype=np.uint8)
+        rgb = np.array(self._rgb_server.rgb(size=100), dtype=np.uint8)
         return rgb
 
     @measure_time(__name__)
