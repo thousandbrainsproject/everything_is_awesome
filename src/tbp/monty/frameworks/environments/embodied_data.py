@@ -26,6 +26,7 @@ from tbp.monty.frameworks.actions.actions import (
     SetAgentPose,
     SetSensorRotation,
 )
+from tbp.monty.frameworks.measure import measure_time
 from tbp.monty.frameworks.models.motor_policies import (
     GetGoodView,
     InformedPolicy,
@@ -107,6 +108,7 @@ class EnvironmentDataset(Dataset):
             observation = transform(observation, state)
         return observation
 
+    @measure_time(__name__)
     def __getitem__(self, action: Action):
         observation = self.env.step(action)
         state = self.env.get_state()
@@ -164,6 +166,7 @@ class EnvironmentDataLoader:
         self._counter = 0
         return self
 
+    @measure_time(__name__)
     def __next__(self):
         if self._counter == 0:
             # Return first observation after 'reset' before any action is applied

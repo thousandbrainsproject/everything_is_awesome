@@ -52,6 +52,7 @@ from tbp.monty.frameworks.environments.everything_is_awesome import (
     EverythingIsAwesomeDataLoader,
     EverythingIsAwesomeEnvironment,
     EverythingIsAwesomePolicy,
+    EverythingIsAwesomeTrainingPolicy,
 )
 from tbp.monty.frameworks.experiments.everything_is_awesome import (
     EverythingIsAwesomeExperiment,
@@ -410,7 +411,7 @@ everything_is_awesome_train = dict(
     monty_config=dict(
         monty_class=MontyForEvidenceGraphMatching,
         monty_args=dict(
-            num_exploratory_steps=30,
+            num_exploratory_steps=50,
             min_eval_steps=3,
             min_train_steps=3,
             max_total_steps=25,
@@ -483,7 +484,7 @@ everything_is_awesome_train = dict(
         motor_system_config=dict(
             motor_system_class=MotorSystem,
             motor_system_args=dict(
-                policy_class=EverythingIsAwesomePolicy,
+                policy_class=EverythingIsAwesomeTrainingPolicy,
                 policy_args=dict(
                     action_sampler_class=EverythingIsAwesomeActionSampler,
                     action_sampler_args={},

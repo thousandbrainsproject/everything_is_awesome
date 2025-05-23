@@ -13,6 +13,7 @@ import logging
 import numpy as np
 
 from tbp.monty.frameworks.loggers.exp_logger import TestLogger
+from tbp.monty.frameworks.measure import measure_time
 from tbp.monty.frameworks.models.abstract_monty_classes import (
     LearningModule,
     Monty,
@@ -136,6 +137,7 @@ class MontyBase(Monty):
     # Basic methods that specify the algorithm
     ###
 
+    @measure_time(__name__)
     def step(self, observation):
         # For the base class, just use matching step. Note that matching_step and
         # exploratory_step are fully implemented by the abstract class.

@@ -27,9 +27,11 @@ from tbp.monty.frameworks.environments.embodied_environment import (
     ActionSpace,
     EmbodiedEnvironment,
 )
+from tbp.monty.frameworks.measure import measure_time
 from tbp.monty.frameworks.models.motor_policies import BasePolicy
 from tbp.monty.frameworks.models.motor_system_state import (
     AgentState,
+    MotorSystemState,
     ProprioceptiveState,
     SensorState,
 )
@@ -114,6 +116,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
     def close(self):
         pass
 
+    @measure_time(__name__)
     def _extract_patch(self, img, side=70, resize_to=None, start_pos=(0, 0)):
         """Extracts a patch from the given image.
 
@@ -137,6 +140,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         patch = img[start_y:end_y, start_x:end_x]
         return patch
 
+    @measure_time(__name__)
     def _observations(self) -> EverythingIsAwesomeObservations:
         """Requests and prepares RGB and depth observations.
 
@@ -150,7 +154,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
             observations, as well as other relevant information.
         """
         # Get RGB image and extract the patch
-        rgb = np.array(self._rgb_server.rgb(size=600), dtype=np.uint8)
+        rgb = self._rgb()
         rgb_patch = self._extract_patch(rgb, start_pos=(250, 250))
 
         # stack alpha channel with 255 to the rgb
@@ -159,7 +163,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
 
         # Get Depth image and extract the patch
         # Linear transformation coefficients are specific to depth sensor.
-        depth = np.array(self._depth_server.depth(size=180), dtype=np.float64)
+        depth = self._depth()
         depth_patch = self._extract_patch(
             depth, resize_to=(1000, 1000), start_pos=(550, 350)
         )
@@ -174,6 +178,17 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
             )
         )
 
+    @measure_time(__name__)
+    def _rgb(self) -> np.ndarray:
+        rgb = np.array(self._rgb_server.rgb(size=600), dtype=np.uint8)
+        return rgb
+
+    @measure_time(__name__)
+    def _depth(self) -> np.ndarray:
+        depth = np.array(self._depth_server.depth(size=180), dtype=np.float64)
+        return depth
+
+    @measure_time(__name__)
     def _update_orbit_motor_state(self) -> None:
         """Updates the orbit motor state from the proprioception server.
 
@@ -185,6 +200,7 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         self._orbit_motor.position = self._proprioception_server.position(Motor.ORBIT)
         self._orbit_motor.speed = self._proprioception_server.speed(Motor.ORBIT)
 
+    @measure_time(__name__)
     def _update_translate_motor_state(self) -> None:
         """Updates the translate motor state from the proprioception server.
 
@@ -198,10 +214,12 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         )
         self._translate_motor.speed = self._proprioception_server.speed(Motor.TRANSLATE)
 
+    @measure_time(__name__)
     def step(self, action: Action) -> EverythingIsAwesomeObservations:
         action.act(self._actuator)
         return self._observations()
 
+    @measure_time(__name__)
     def get_state(self) -> ProprioceptiveState:
         """Get the Monty proprioceptive state from the environment.
 
@@ -337,6 +355,41 @@ class EverythingIsAwesomePolicy(BasePolicy):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.use_goal_state_driven_actions = False
+
+
+class EverythingIsAwesomeTrainingPolicy(BasePolicy):
+    """Training policy for the Everything Is Awesome hackathon environment."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.use_goal_state_driven_actions = False
+        self._level = 0
+        self._rotation_degrees = 0
+
+    def dynamic_call(
+        self, _state: MotorSystemState | None = None
+    ) -> OrbitRight | TranslateUp:
+        """Sample an action from the policy.
+
+        From the starting position, alternates orbiting all the way around the object
+        and then translating up the object. Effectively, doing a 360 degree scan of the
+        object from the bottom to the top.
+
+        Args:
+            _state (MotorSystemState | None): The current state of the motor system.
+                Defaults to None. Unused.
+
+        Returns:
+            OrbitRight | TranslateUp: An action to take.
+        """
+        while self._level < 3:
+            if self._rotation_degrees < 360:
+                self._rotation_degrees += 15
+                return OrbitRight(agent_id=self.agent_id, degrees=15)
+            else:
+                self._level += 1
+                self._rotation_degrees = 0
+                return TranslateUp(agent_id=self.agent_id, distance=0.1)
 
 
 class EverythingIsAwesomeActionSampler(ActionSampler):
