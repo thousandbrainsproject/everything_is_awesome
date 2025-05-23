@@ -365,10 +365,12 @@ class EverythingIsAwesomeTrainingPolicy(BasePolicy):
         self.use_goal_state_driven_actions = False
         self._level = 0
         self._rotation_degrees = 0
+        self._orbit_step = 15
+        self._translate_step = 0.1
 
     def dynamic_call(
         self, _state: MotorSystemState | None = None
-    ) -> OrbitRight | TranslateUp:
+    ) -> OrbitLeft | OrbitRight | TranslateUp:
         """Sample an action from the policy.
 
         From the starting position, alternates orbiting all the way around the object
@@ -380,16 +382,21 @@ class EverythingIsAwesomeTrainingPolicy(BasePolicy):
                 Defaults to None. Unused.
 
         Returns:
-            OrbitRight | TranslateUp: An action to take.
+            OrbitLeft | OrbitRight | TranslateUp: An action to take.
         """
         while self._level < 3:
             if self._rotation_degrees < 360:
-                self._rotation_degrees += 15
-                return OrbitRight(agent_id=self.agent_id, degrees=15)
+                self._rotation_degrees += self._orbit_step
+                return OrbitRight(agent_id=self.agent_id, degrees=self._orbit_step)
             else:
                 self._level += 1
                 self._rotation_degrees = 0
-                return TranslateUp(agent_id=self.agent_id, distance=0.1)
+                return TranslateUp(
+                    agent_id=self.agent_id, distance=self._translate_step
+                )
+
+        # We are done scanning, now waiting for the experiment to end
+        return OrbitLeft(agent_id=self.agent_id, degrees=self._orbit_step)
 
 
 class EverythingIsAwesomeActionSampler(ActionSampler):
