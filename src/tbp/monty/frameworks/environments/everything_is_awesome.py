@@ -252,8 +252,10 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         # an orientation facing the object.
         # Note: simpler due to x_pos and y_pos being on the unit circle
         orientation = R.from_euler("y", orbit_radians, degrees=False)
-        orientation_quat = orientation.as_quat()
-        rotation = quaternion.from_float_array(np.array(orientation_quat.tolist()))
+        orientation_quat = orientation.as_quat().tolist()
+        rotation = quaternion.from_float_array(
+            np.array([orientation_quat[3], *orientation_quat[:3]])
+        )
 
         return ProprioceptiveState(
             agent_id_0=AgentState(
