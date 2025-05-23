@@ -358,6 +358,7 @@ class EverythingIsAwesomeTrainingPolicy(BasePolicy):
         super().__init__(*args, **kwargs)
         self.use_goal_state_driven_actions = False
         self._level = 0
+        self._max_levels = 4
         self._rotation_degrees = 0
         self._orbit_step = 15
         self._translate_step = 0.1
@@ -381,7 +382,7 @@ class EverythingIsAwesomeTrainingPolicy(BasePolicy):
         Raises:
             StopIteration: If the policy is done scanning.
         """
-        if self._level < 3:
+        if self._level < self._max_levels:
             if self._rotation_degrees < 360:
                 self._rotation_degrees += self._orbit_step
                 return OrbitRight(agent_id=self.agent_id, degrees=self._orbit_step)

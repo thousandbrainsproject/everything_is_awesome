@@ -213,7 +213,7 @@ randrot_noise_surf_sim_on_scan_tbp_robot_lab.update(
 ACTUATOR_SERVER_URI = "PYRO:motor@192.168.0.235:3514"
 AGENT_ID = "agent_id_0"
 DEPTH_SERVER_URI = "PYRO:depth@192.168.0.235:3513"
-DEPTH_CLIP_VALUE_RR = 1.8  # Based on physical measurements
+DEPTH_VOID_VALUE_RR = 1.8  # Based on physical measurements
 """The depth value to clip observations that miss the object."""
 PITCH_DIAMETER_RR = 0.12318841  # Based on physical measurements
 """The pitch diameter in units of robot_radius."""
@@ -358,8 +358,7 @@ everything_is_awesome_eval = dict(
         transform=[
             DepthTo3DLocations(
                 agent_id=AGENT_ID,
-                clip_value=DEPTH_CLIP_VALUE_RR,
-                depth_clip_sensors=[SENSOR_ID],
+                void_value=DEPTH_VOID_VALUE_RR,
                 get_all_points=True,
                 resolutions=[SENSOR_RESOLUTION],
                 sensor_ids=[SENSOR_ID],
@@ -388,7 +387,7 @@ everything_is_awesome_train = dict(
         min_lms_match=1,
         model_name_or_path="",
         seed=1337,
-        show_sensor_output=False,
+        show_sensor_output=True,
     ),
     logging_config=dict(
         monty_log_level="DETAILED",
@@ -411,10 +410,10 @@ everything_is_awesome_train = dict(
     monty_config=dict(
         monty_class=MontyForEvidenceGraphMatching,
         monty_args=dict(
-            num_exploratory_steps=50,
+            num_exploratory_steps=1000,
             min_eval_steps=3,
             min_train_steps=3,
-            max_total_steps=25,
+            max_total_steps=1000,
         ),
         learning_module_configs=dict(
             learning_module_0=dict(
@@ -512,8 +511,7 @@ everything_is_awesome_train = dict(
         transform=[
             DepthTo3DLocations(
                 agent_id=AGENT_ID,
-                clip_value=DEPTH_CLIP_VALUE_RR,
-                depth_clip_sensors=[SENSOR_ID],
+                void_value=DEPTH_VOID_VALUE_RR,
                 get_all_points=True,
                 resolutions=[SENSOR_RESOLUTION],
                 sensor_ids=[SENSOR_ID],

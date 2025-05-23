@@ -8,6 +8,8 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT.
 
+from __future__ import annotations
+
 from numbers import Number
 from typing import Optional, Tuple
 
@@ -15,6 +17,7 @@ import numpy as np
 import quaternion as qt
 import scipy
 
+from tbp.monty.frameworks.models.motor_system_state import MotorSystemState
 from tbp.monty.frameworks.models.states import State
 
 __all__ = [
@@ -262,6 +265,7 @@ class DepthTo3DLocations:
         zooms=1.0,
         hfov=90.0,
         clip_value=0.05,
+        void_value=1.0,
         depth_clip_sensors=None,
         world_coord=True,
         get_all_points=False,
@@ -309,11 +313,12 @@ class DepthTo3DLocations:
         self.get_all_points = get_all_points
         self.use_semantic_sensor = use_semantic_sensor
         self.clip_value = clip_value
+        self.void_value = void_value
         self.depth_clip_sensors = (
             [] if depth_clip_sensors is None else depth_clip_sensors
         )
 
-    def __call__(self, observations: dict, state: Optional[State] = None):
+    def __call__(self, observations: dict, state: MotorSystemState | None = None):
         """Apply the depth-to-3D-locations transform to sensor observations.
 
         Applies spatial transforms to the observations and generates a mask used
@@ -345,9 +350,7 @@ class DepthTo3DLocations:
         a few different code paths. Here is a brief outline of the parameters
         that reflect these factors as they are commonly used in Monty:
          - when using a surface agent, self.depth_clip_sensors is a non-empty
-           tuple. More specifically, we know which sensor is the surface agent
-           since it's index will be in self.depth_clip_sensors. We only apply
-           depth clipping to the surface agent.
+           list. We only apply depth clipping to the surface agent.
          - surface agents also have their depth and semantic data clipped to a
            a very short range from the sensor. This is done to more closely model
            a finger which has short reach.
@@ -369,7 +372,8 @@ class DepthTo3DLocations:
 
         Args:
             observations (dict): Observations returned by the data loader.
-            state (State, optional): Optionally supplied CMP-compliant state object.
+            state (MotorSystemState | None): Optionally supplied CMP-compliant state
+                object.
 
         Returns:
             dict: The original observations dict with the following possibly added:
@@ -385,20 +389,19 @@ class DepthTo3DLocations:
                     when `self.get_all_points` is `True`.
         """
         for i, sensor_id in enumerate(self.sensor_ids):
-            agent_obs = observations[self.agent_id][sensor_id]
-            depth_patch = agent_obs["depth"]
+            sensor_obs = observations[self.agent_id][sensor_id]
+            depth_patch = sensor_obs["depth"]
 
             # We need a semantic map that masks off-object pixels. We can use the
             # ground-truth semantic map if it's available. Otherwise, we generate one
             # from the depth map and (temporarily) add it to the observation dict.
-            if "semantic" in agent_obs.keys():
-                semantic_patch = agent_obs["semantic"]
+            if "semantic" in sensor_obs.keys():
+                semantic_patch = sensor_obs["semantic"]
             else:
                 # The generated map uses depth observations to determine whether
-                # pixels are on object using 1 meter as a threshold since
-                # `MissingToMaxDepth` sets the background void to 1.
+                # pixels are on object using `void_value` as a threshold.
                 semantic_patch = np.ones_like(depth_patch, dtype=int)
-                semantic_patch[depth_patch >= 1] = 0
+                semantic_patch[depth_patch >= self.void_value] = 0
 
             # Apply depth clipping to the surface agent, and initialize the
             # surface-separation threshold for later use.
@@ -423,7 +426,7 @@ class DepthTo3DLocations:
                 # self.use_semantic_sensor is not commonly used at present, if ever.
                 # self.depth_clip_sensors implies a surface agent, and
                 # self.use_semantic_sensor implies multi-object experiments.
-                surface_patch = agent_obs["semantic"]
+                surface_patch = sensor_obs["semantic"]
             else:
                 surface_patch = self.get_surface_from_depth(
                     depth_patch,
