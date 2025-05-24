@@ -65,10 +65,11 @@ class EverythingIsAwesomeTrainExperiment(MontyExperiment):
     def post_episode(self, steps):
         super().post_episode(steps)
 
+        object_name = self.dataloader.primary_target["object"]
         if self.show_sensor_output:
             graph = (
                 self.model.learning_modules[0]
-                .graph_memory.models_in_memory["potted_meat_can"]["patch"]
+                .graph_memory.models_in_memory[object_name]["patch"]
                 .pos
             )
             agent_state = self.dataset.env.get_state()
