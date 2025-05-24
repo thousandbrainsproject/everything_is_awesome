@@ -237,7 +237,7 @@ everything_is_awesome_eval = dict(
         show_sensor_output=False,  # Use this for online visualization
     ),
     logging_config=dict(
-        monty_log_level="DETAILED",
+        monty_log_level="BASIC",
         monty_handlers=[
             BasicCSVStatsHandler,
             DetailedJSONHandler,
@@ -258,15 +258,15 @@ everything_is_awesome_eval = dict(
         monty_class=MontyForEvidenceGraphMatching,
         monty_args=dict(
             num_exploratory_steps=1_000,
-            min_eval_steps=3,
-            min_train_steps=3,
+            min_eval_steps=20,
+            min_train_steps=10,
             max_total_steps=2_500,
         ),
         learning_module_configs=dict(
             learning_module_0=dict(
                 learning_module_class=EvidenceGraphLM,
                 learning_module_args=dict(
-                    max_match_distance=0.01,  # TODO: Will this work for radii units?
+                    max_match_distance=0.05,  # TODO: Will this work for radii units?
                     tolerances=dict(
                         patch=dict(
                             hsv=np.array([0.1, 0.2, 0.2]),
@@ -387,10 +387,10 @@ everything_is_awesome_train = dict(
         min_lms_match=1,
         model_name_or_path="",
         seed=1337,
-        show_sensor_output=True,
+        s0how_sensor_output=True,
     ),
     logging_config=dict(
-        monty_log_level="DETAILED",
+        monty_log_level="BASIC",
         monty_handlers=[
             BasicCSVStatsHandler,
             DetailedJSONHandler,

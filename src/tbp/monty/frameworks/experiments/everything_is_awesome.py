@@ -79,6 +79,15 @@ class EverythingIsAwesomeTrainExperiment(MontyExperiment):
 
 
 class EverythingIsAwesomeExperiment(MontyExperiment):
+    def __init__(self, config):
+        """Initialize the experiment based on the provided configuration.
+
+        Args:
+            config: config specifying variables of the experiment.
+        """
+        super().__init__(config)
+        self.models_scale_factor = 1.0
+
     @property
     def logger_args(self):
         args = super().logger_args
@@ -103,6 +112,14 @@ class EverythingIsAwesomeExperiment(MontyExperiment):
 
         if self.show_sensor_output:
             self.online_visualizer = EverythingIsAwesomeEvalVisualizer(axes=True)
+
+    def init_model(self, monty_config, model_path=None):
+        model = super().init_model(monty_config, model_path)
+        if self.models_scale_factor != 1.0:
+            for obj in model.learning_modules[0].graph_memory.models_in_memory.values():
+                obj["patch"].scale_model(self.models_scale_factor)
+
+        return model
 
     def post_step(self, step, observation):
         """Hook for anything you want to do after a step."""

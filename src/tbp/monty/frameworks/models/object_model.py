@@ -684,6 +684,24 @@ class GridObjectModel(GraphObjectModel):
         )
         return graph
 
+    def scale_model(self, scale_factor: float):
+        """Scale the entire object model by a given factor.
+
+        This affects:
+        - Graph node positions (`self._graph.pos`)
+        - Locations in the sparse `_location_grid`
+
+        Args:
+            scale_factor (float): Factor by which to scale all spatial data.
+        """
+        if self._graph is not None:
+            self._graph.pos[:, 1] -= 1.5
+            self._graph.pos *= scale_factor
+
+            self._location_tree = KDTree(self._graph.pos, leafsize=40)
+
+        logging.info(f"Scaled model by a factor of {scale_factor}")
+
     # ------------------------ Helper --------------------------
     def _extract_feature_array(self, feature_dict):
         """Turns the dict of features into an array + feature mapping.
