@@ -232,9 +232,9 @@ everything_is_awesome_eval = dict(
         n_eval_epochs=1,
         n_train_epochs=1,
         min_lms_match=1,
-        model_name_or_path=model_path_tbp_robot_lab,
+        model_name_or_path=model_path_everything_is_awesome,
         seed=1337,
-        show_sensor_output=False,  # Use this for online visualization
+        show_sensor_output=True,  # Use this for online visualization
     ),
     logging_config=dict(
         monty_log_level="BASIC",

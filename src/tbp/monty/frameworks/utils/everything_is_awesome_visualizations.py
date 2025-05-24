@@ -10,6 +10,7 @@
 import os
 
 import numpy as np
+import torch
 import trimesh
 import vedo
 
@@ -35,8 +36,29 @@ class EverythingIsAwesomeTrainVisualizer(vedo.Plotter):
         self.render()
         self.show(resetcam=True, interactive=interactive, axes=self.show_axes)
 
+    def update_data_eval(self, graph, graph_rot, agent_position, interactive=False):
+        self.clear_scene()
+
+        # add graph points
+        self.graph_obj = vedo.Points(graph, r=5).c("black")
+        self.set_object_orientation(graph_rot)
+        self.add(self.graph_obj)
+
+        # add agent
+        self.agent_obj = self.add_agent(agent_position)
+        self.add(self.agent_obj)
+
+        self.render()
+        self.show(resetcam=True, interactive=interactive, axes=self.show_axes)
+
+    def set_object_orientation(self, orientation):
+        orientation_xyz = orientation.as_euler("xyz", orientation)
+        self.graph_obj.rotate_x(orientation_xyz[0], rad=False)
+        self.graph_obj.rotate_y(orientation_xyz[1], rad=False)
+        self.graph_obj.rotate_z(orientation_xyz[2], rad=False)
+
     def add_agent(self, position):
-        return vedo.Cube(side=0.1).scale(0.1).pos(position).color("red")
+        return vedo.Cube(side=0.1).scale(0.3).pos(position).color("red")
 
     def clear_scene(self):
         if self.graph_obj is not None:
@@ -54,9 +76,14 @@ class EverythingIsAwesomeEvalVisualizer(vedo.Plotter):
         self.show_axes = axes
         self.initialize_parameters()
 
-        self.forward_axis = np.array([-1, 0, 0])
-        self.up_axis = np.array([0, 0, 1])
+        self.forward_axis = np.array([0, 0, -1])
+        self.up_axis = np.array([0, 1, 0])
         self.data_dir = os.path.join(os.environ["MONTY_DATA"], "tbp_robot_lab/meshes")
+
+        pretrained_dir = "/home/ramy/tbp/results/monty/pretrained_models/pretrained_robot_v1/everything_is_awesome/pretrained/model.pt"
+        self.pretrained_graphs = torch.load(pretrained_dir)["lm_dict"][0][
+            "graph_memory"
+        ]
 
     def update_data(
         self, mlh_object, object_orientation, agent_position, agent_orientation
@@ -64,7 +91,8 @@ class EverythingIsAwesomeEvalVisualizer(vedo.Plotter):
         glb_path = self.find_glb_orig(self.data_dir, mlh_object)
         if self.glb_path != glb_path:
             self.clear_scene()
-            self.add_glb(glb_path, load_texture=False)
+            # self.add_glb(glb_path, load_texture=False)
+            self.add_pretrained(mlh_object)
             self.glb_path = glb_path
 
         self.set_camera_absolute_orientation(
@@ -99,6 +127,14 @@ class EverythingIsAwesomeEvalVisualizer(vedo.Plotter):
                             return glb_orig_path
 
         return None  # Return None if no match is found
+
+    def add_pretrained(self, mlh_object):
+        graph = self.pretrained_graphs[mlh_object]["patch"].pos
+        obj = vedo.Points(graph, r=5).c("black")
+
+        # add points to plotter
+        self.obj = obj
+        self.add(obj)
 
     def set_object_orientation(self, orientation):
         orientation_xyz = orientation.as_euler("xyz", orientation)
