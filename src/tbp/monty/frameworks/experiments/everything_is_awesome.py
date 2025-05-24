@@ -50,6 +50,9 @@ class EverythingIsAwesomeTrainExperiment(MontyExperiment):
         super().post_step(step, observation)
 
         if self.show_sensor_output:
+            if "patch" not in self.model.learning_modules[0].buffer.locations:
+                return
+
             graph = self.model.learning_modules[0].buffer.locations["patch"]
 
             agent_state = self.dataset.env.get_state()
