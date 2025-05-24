@@ -19,7 +19,7 @@ import numpy as np
 import Pyro5.api
 import quaternion
 from numpy.random import Generator
-from scipy.spatial.transform import Rotation as R
+from scipy.spatial.transform import Rotation as R  # noqa: N817
 
 from tbp.monty.frameworks.actions.action_samplers import ActionSampler
 from tbp.monty.frameworks.actions.actions import Action
@@ -224,12 +224,12 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         In the reset position, the translate motor is at a minimum position possible.
         The orbit motor is at an arbitrary position it considers to be 0 degrees.
         The default orientation of the robot from which all rotations are calculated
-        is [0,0,-1] in XYZ format. That is, the robot is at location [0,0,1] and
-        facing the origin, looking down the negative Z axis.
+        is [1, 0, 0, 0] in WXYZ format. This is to be interpreted as a robot at location
+        [0,0,1] and facing the origin, looking down the negative Z axis.
 
         The units of the coordinate system are robot_radius. So, that location [0,0,1]
-        places the robot on the unit circle, on the positive Z axis, 1 robot_radius away
-        from the origin.
+        places the robot on the ZX unit circle, on the positive Z axis, 1 robot_radius
+        away from the origin.
 
         Returns:
             ProprioceptiveState: The Monty proprioceptive state.
@@ -253,9 +253,24 @@ class EverythingIsAwesomeEnvironment(EmbodiedEnvironment):
         # Note: simpler due to x_pos and y_pos being on the unit circle
         orientation = R.from_euler("y", orbit_radians, degrees=False)
         orientation_quat = orientation.as_quat().tolist()
-        rotation = quaternion.from_float_array(
+        rotation_candidate_one = quaternion.from_float_array(
             np.array([orientation_quat[3], *orientation_quat[:3]])
         )
+        rotation_candidate_two = quaternion.from_float_array(
+            np.array(
+                [
+                    np.cos(orbit_radians / 2),
+                    0,
+                    np.sin(orbit_radians / 2),
+                    0,
+                ]
+            )
+        )
+        assert np.allclose(
+            quaternion.as_float_array(rotation_candidate_one),
+            quaternion.as_float_array(rotation_candidate_two),
+        )
+        rotation = rotation_candidate_one
 
         return ProprioceptiveState(
             agent_id_0=AgentState(
@@ -356,10 +371,10 @@ class EverythingIsAwesomeTrainingPolicy(BasePolicy):
         super().__init__(*args, **kwargs)
         self.use_goal_state_driven_actions = False
         self._level = 0
-        self._max_levels = 4
+        self._max_levels = 10
         self._rotation_degrees = 0
-        self._orbit_step = 15
-        self._translate_step = 0.1
+        self._orbit_step = 7
+        self._translate_step = 0.00774016
 
     def dynamic_call(
         self, _state: MotorSystemState | None = None

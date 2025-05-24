@@ -387,7 +387,7 @@ everything_is_awesome_train = dict(
         min_lms_match=1,
         model_name_or_path="",
         seed=1337,
-        s0how_sensor_output=True,
+        show_sensor_output=True,
     ),
     logging_config=dict(
         monty_log_level="BASIC",

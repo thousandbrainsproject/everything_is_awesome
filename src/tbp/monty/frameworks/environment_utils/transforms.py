@@ -10,15 +10,16 @@
 
 from __future__ import annotations
 
-from numbers import Number
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Tuple
 
 import numpy as np
 import quaternion as qt
 import scipy
 
 from tbp.monty.frameworks.models.motor_system_state import MotorSystemState
-from tbp.monty.frameworks.models.states import State
+
+if TYPE_CHECKING:
+    from numbers import Number
 
 __all__ = [
     "AddNoiseToRawDepthImage",
@@ -284,7 +285,7 @@ class DepthTo3DLocations:
 
         for i, zoom in enumerate(zooms):
             # Pinhole camera, focal length fx = fy
-            hfov[i] = float(hfov[i] * np.pi / 180.0)
+            hfov[i] = np.radians(hfov[i])
 
             fx = np.tan(hfov[i] / 2.0) / zoom
             fy = fx
