@@ -1,3 +1,7 @@
+> [!NOTE]
+>
+> This is a fork of the main Monty project used in the May 2025 Hackathon. For the up-to-date Monty project, please see the main repository: https://github.com/thousandbrainsproject/tbp.monty
+
 ![](docs/figures/overview/logo.png)
 
 # Welcome to the Monty Repository!
