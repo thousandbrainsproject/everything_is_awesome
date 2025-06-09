@@ -12,7 +12,7 @@ This is our code for the May 2025 Robot Hackathon repository. We took the fork a
 
 We built a LEGO robot that could orbit around an object, learn the object, and later, recognize the object.
 
-![](media/lego_robot_demo.mov)
+https://github.com/user-attachments/assets/14b6bd9c-69ce-41f6-8099-0c0474a63a80
 
 # Getting Started
 
