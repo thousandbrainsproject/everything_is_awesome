@@ -23,7 +23,52 @@ While this project is not reproducible, it can be used as an example of how to c
 
 ## Parts List
 
-TODO
+This project uses a combination of Raspberry Pi hardware, LEGO Technic parts, RGB and depth sensors to create a fully functional learning robot.
+
+- **Raspberry Pi 4 Model B (x1)** and **Raspberry Pi 5 (x1)**  
+  Raspberry Pi 4 is used to control the actuators as well as interface with the Depth Time-of-flight sensor, whereas the Raspberry Pi 5 is used to connect to RGB camera sensor.
+
+  > [!NOTE]
+  > Don't forget the Raspberry Pi accessories (e.g., Micro SD cards, power supplies).
+
+- **Camera Module (x1)**  
+  Raspberry Pi Camera Module 3 for RGB image capture.
+
+- **Arducam Time-of-Flight (ToF) Depth Camera (x1)**  
+  Provides high-resolution depth measurements.
+
+- **Raspberry Pi Build HAT (x1)**  
+  A LEGO-compatible HAT used to interface the Raspberry Pi with LEGO Technic motors and sensors.
+
+  > [!NOTE]
+  > Don't forget the dedicated Build HAT power supply
+
+  > [!WARNING]
+  > The Build HAT only works with RPI4
+
+
+- **Flexible Flat Cables (FPC)**  
+  Connector cables for the RGB and Depth cameras. These usually come with the cameras but longer cables may be
+  needed depending on the robot design.
+
+  > [!WARNING]
+  > RPI4 and RPI5 have different DISP/CAM connectors (22-pin vs. 15-pin).
+
+- **LEGO Technic Pieces**  
+  We used LEGO Technic parts for building the robot frame, rotating platform, and joints.
+
+- **LEGO Technic Medium Angular Motors (x2)**  
+  Motors with built-in absolute encoders for precise angular control. Used to actuate the robot platform and arm.
+
+- **[OPTIONAL] Router with Wireless Access Point (x1)**  
+  Provides a dedicated local network for static IP assignment and reliable low-latency communication.
+
+  > [!TIP]
+  > If you do not have physical access to the main router, or access to the router interface,
+  > it would be useful to use a WIFI extender with an output ethernet port that connects to the
+  > dedicated router. This ensures that you have access to the internet while on the Robot LAN.
+
+---
 
 ## Robot
 
