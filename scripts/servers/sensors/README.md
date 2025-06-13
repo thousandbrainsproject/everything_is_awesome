@@ -90,8 +90,8 @@ Step 1: Download the scripts
 
 ```bash
 cd ~/server
-curl -O https://raw.githubusercontent.com/thousandbrainsproject/tbp.monty/main/everything_is_awesome/scripts/servers/sensors/server.py
-curl -O https://raw.githubusercontent.com/thousandbrainsproject/tbp.monty/main/everything_is_awesome/scripts/servers/sensors/pyro_utils.py
+curl -O https://raw.githubusercontent.com/thousandbrainsproject/everything_is_awesome/refs/heads/main/scripts/servers/sensors/server.py
+curl -O https://raw.githubusercontent.com/thousandbrainsproject/everything_is_awesome/refs/heads/main/scripts/servers/sensors/pyro_utils.py
 ```
 
 Step 2: Modify the IP Address

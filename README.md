@@ -108,7 +108,7 @@ The overall Network design and nodes are shown in the figure below.
 #### Sensors
 
 We use the official Raspberry Pi Camera Module 3 as the RGB sensor of the Raspberry Pi 5.
-For full setup instructions including OS flashing, environment setup, and camera server configuration, see the Sensor Pi Setup Guide.
+For full setup instructions including OS flashing, environment setup, and camera server configuration, see the [Sensor Pi Setup Guide](scripts/sensors/README.md).
 
 > [!WARNING]
 > While the Raspberry Pi 5 supports multiple camera inputs, running both RGB and Depth cameras on
@@ -122,7 +122,7 @@ The actuators are driven by a Raspberry Pi 4 using the Raspberry Pi Build HAT, w
 LEGO Technic Angular Motors. This allows for precise motor control via Python. The same Raspberry Pi also hosts
 the ArduCam Time-of-Flight (ToF) depth camera, used to obtain depths measurements of the objects.
 
-For full setup instructions including OS flashing, Python environment setup, server configuration, see the Actuator Pi Setup Guide.
+For full setup instructions including OS flashing, Python environment setup, server configuration, see the [Actuator Pi Setup Guide](scripts/actuators/README.md).
 
 #### Robot Lego Design
 
