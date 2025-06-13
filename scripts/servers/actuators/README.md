@@ -10,7 +10,8 @@ Assemble the Actuator-Pi hardware as shown in the figure below:
 
 ## OS Flashing
 
-To begin, you'll need to install Raspberry Pi OS on your Raspberry Pi 5, which will host the RGB camera.
+To begin, you'll need to install Raspberry Pi OS on your Raspberry Pi 5, which will host the ToF sensor and
+interface with the Build HAT.
 
 #### The Raspberry Pi Imager
 
@@ -36,7 +37,7 @@ To begin, you'll need to install Raspberry Pi OS on your Raspberry Pi 5, which w
 ## Python Virtual Environment Setup
 
 After booting into Raspberry Pi OS and connecting to the network, you’ll need to set up a Python
-environment for running the RGB camera server.
+environment.
 
 Step 1: SSH into the Actuator Pi
 
@@ -55,7 +56,7 @@ sudo apt install -y python3 python3-venv python3-pip curl vim tmux git
 
 Step 3: Create and Activate the Virtual Environment
 
-We use the `--system-site-packages` flag to inherit some pre-installed packages like `picamera2` that already
+We use the `--system-site-packages` flag to inherit some pre-installed packages that already
 exists in the Raspberry Pi OS image.
 
 ```bash
@@ -73,7 +74,7 @@ Step 4: Install Required Python Packages
 pip install opencv-python pyro5 buildhat
 ```
 
-This installs OpenCV for camera access, Pyro5 for serving camera data over the network,
+This installs OpenCV for image manipulation, Pyro5 for data transfer over the network,
 and buildhat for controlling the LEGO motors.
 
 > [!TIP]
@@ -86,12 +87,12 @@ Step 5: Follow ArduCam [Instructions](https://www.arducam.com/docs/tof-camera-ge
 
 ## Server Script Setup
 
-To run the RGB camera server, you'll need to fetch and configure three Python
+To run the actuator servers, you'll need to fetch and configure three Python
 scripts: `server_depth.py`, `server_motor.py` and `pyro_utils.py`.
 
 These scripts are located in the `everything_is_awesome/scripts/servers/actuators` folder of the repository.
 
-Step 1: Download the scripts
+Step 1: Download the scripts on the actuator-pi
 
 ```bash
 cd ~/server
@@ -127,6 +128,9 @@ python server_depth.py
 Press `Ctrl+B`, then `D` to detach from the session. You can later resume with `tmux attach -t server-depth`
 
 **Repeat the process to start the `server_motor.py` script.**
+
+> [!TIP]
+> You can start both servers in the same tmux session using a different pane/window.
 
 
 ## Client-Side Test (Monty Laptop)
