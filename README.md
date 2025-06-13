@@ -119,8 +119,8 @@ For full setup instructions including OS flashing, environment setup, and camera
 #### Actuators
 
 The actuators are driven by a Raspberry Pi 4 using the Raspberry Pi Build HAT, which interfaces directly with
-LEGO Technic Angular Motors. This allows for precise motor control via Python. The same Raspberry Pi also hosts
-the ArduCam Time-of-Flight (ToF) depth camera, used to obtain depths measurements of the objects.
+LEGO Technic Angular Motors. This allows for precise motor control. The same Raspberry Pi also hosts
+the ArduCam Time-of-Flight (ToF) depth camera, used to obtain depths measurements to the objects.
 
 For full setup instructions including OS flashing, Python environment setup, server configuration, see the [Actuator Pi Setup Guide](scripts/servers/actuators/README.md).
 
