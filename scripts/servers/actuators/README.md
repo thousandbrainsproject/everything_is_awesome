@@ -8,6 +8,10 @@ Assemble the Actuator-Pi hardware as shown in the figure below:
 
 ![](media/actuators.png)
 
+> [!TIP]
+> The Build HAT power supply provides enough power to run the Raspberry Pi as well.
+> There is no need to plug in the RPI power supply in this case.
+
 ## OS Flashing
 
 To begin, you'll need to install Raspberry Pi OS on your Raspberry Pi 5, which will host the ToF sensor and
