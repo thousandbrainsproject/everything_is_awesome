@@ -63,18 +63,68 @@ This project uses a combination of Raspberry Pi hardware, LEGO Technic parts, RG
 - **[OPTIONAL] Router with Wireless Access Point (x1)**  
   Provides a dedicated local network for static IP assignment and reliable low-latency communication.
 
-> [!TIP]
-> If you do not have physical access to the main router, or access to the router interface,
-> it would be useful to use a WIFI extender with an output ethernet port that connects to the
-> dedicated router. This ensures that you have access to the internet while on the Robot LAN.
-
 ---
+
+## Networking
+
+To enable seamless communication between Monty and the Raspberry Pi modules controlling the robot, we created a dedicated local network (Monty LAN). This setup ensures low-latency, reliable connections between devices, while also optionally preserving internet access.
+
+#### LAN Setup
+
+The Monty LAN consists of:
+* A dedicated router or access point that provides IP management and wireless connectivity to all Monty nodes.
+* Two Raspberry Pi nodes:
+    * One connected to the RGB camera (Raspberry Pi 5).
+    * One connected to the actuators and Time-of-Flight (ToF) sensor (Raspberry Pi 4).
+* A computer running the Monty codebase, connected to the same network.
+
+If you have physical or administrative access to the main router, you can plug the dedicated router directly into it via Ethernet to provide internet to the Monty LAN.
+
+> [!TIP]
+> If physical access to the main router is not possible, use a Wi-Fi extender with an Ethernet
+> output port to bridge the Monty router to the internet. This ensures that you have access to
+> the internet while on the Robot LAN.
+
+#### Static IP Reservation
+
+To simplify remote access and avoid repeated lookups of dynamic IPs, we recommend setting static IP reservations for the Raspberry Pis in the DHCP settings of your Monty router. This allows you to consistently SSH into each Pi using known addresses, for example:
+
+```bash
+ssh pi@192.168.0.101  # RGB camera
+ssh pi@192.168.0.102  # Actuators and ToF sensor
+```
+
+
+#### Network design
+
+The overall Network design and nodes are shown in the figure below.
+
+![](media/Network.png)
+
 
 ## Robot
 
-TODO
 
-## Networking
+#### Sensors
+
+We use the official Raspberry Pi Camera Module 3 as the RGB sensor of the Raspberry Pi 5.
+For full setup instructions including OS flashing, environment setup, and camera server configuration, see the Sensor Pi Setup Guide.
+
+> [!WARNING]
+> While the Raspberry Pi 5 supports multiple camera inputs, running both RGB and Depth cameras on
+> the same Pi is currently not possible due to conflicting kernel drivers. We moved the depth
+> sensor to the Actuator Pi as a workaround.
+
+
+#### Actuators
+
+The actuators are driven by a Raspberry Pi 4 using the Raspberry Pi Build HAT, which interfaces directly with
+LEGO Technic Angular Motors. This allows for precise motor control via Python. The same Raspberry Pi also hosts
+the ArduCam Time-of-Flight (ToF) depth camera, used to obtain depths measurements of the objects.
+
+For full setup instructions including OS flashing, Python environment setup, server configuration, see the Actuator Pi Setup Guide.
+
+#### Robot Lego Design
 
 TODO
 
