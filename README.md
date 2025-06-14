@@ -128,14 +128,17 @@ For full setup instructions including OS flashing, Python environment setup, ser
 
 TODO
 
+unit circle
 
 https://github.com/user-attachments/assets/eb92f6a3-8c9a-4ec1-9c92-4c217a66b73c
 
+robot
 
 https://github.com/user-attachments/assets/cbf45812-f1d4-4029-b2ae-477032625526
 
+robot with platform
 
-https://github.com/user-attachments/assets/a0f524df-f69b-4d80-873c-035f1aac834d
+https://github.com/user-attachments/assets/16f1fe2b-8178-451d-82fb-903316299356
 
 ## Code changes
 
