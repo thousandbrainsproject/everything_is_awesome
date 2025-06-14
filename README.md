@@ -128,6 +128,10 @@ For full setup instructions including OS flashing, Python environment setup, ser
 
 TODO
 
+https://github.com/user-attachments/assets/cbf45812-f1d4-4029-b2ae-477032625526
+
+https://github.com/user-attachments/assets/1bab6958-c9b5-4f41-99bb-f22f9e1a7478
+
 ## Code changes
 
 The following files were changed after forking from Monty:
