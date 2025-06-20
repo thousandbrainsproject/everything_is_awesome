@@ -126,19 +126,29 @@ For full setup instructions including OS flashing, Python environment setup, ser
 
 #### Robot Lego Design
 
-TODO
-
-unit circle
+In order to simplify calculations, when looking at the robot setup from above, the robot operates on the ZX unit circle. The object is placed at the origin x,y,z coordinates of (0,0,0) and the robot sensor is placed at (0,0,1).
 
 https://github.com/user-attachments/assets/4238e596-02be-40e0-b539-2d0e3e15d6a1
 
-robot
+Why is it the ZX unit circle? Monty already has some DepthTo3DLocations transform code that assumes the sensor is looking back at the origin from the positive Z axis. In order to not have to rewrite this 3D logic, we chose to define our coordinate system accordingly.
+
+Another benefit of placing the sensor at the unit circle is that it simplifies reasoning about quaternion calculations.
+
+One side effect of using the unit circle is that all distances are calculated in terms of a distance unit "robot radius" or RR. This is why distances in the experiment configuration are `DEPTH_VOID_VALUE_RR` and `PITCH_DIAMETER_RR`. The RR stands for robot radius. Physically, the robot radius is the distance from the origin to the sensor.
+
+In principle, the robot "orbits" around the object at the origin, and can translate up and down, as depicted in the video below:
 
 https://github.com/user-attachments/assets/cbf45812-f1d4-4029-b2ae-477032625526
 
-robot with platform
+In practice, to simplify locomotion, instead of the robot itself orbiting the object, we put the object on the platform which is rotated by one of the LEGO Technic Angular Motors. In a way, we simulate the orbiting by rotating the axes instead of the robot, as depicted in the video below:
 
 https://github.com/user-attachments/assets/16f1fe2b-8178-451d-82fb-903316299356
+
+A second LEGO Technic Angular Motor performs up and down translation of the sensor.
+
+In principle, if you create a robot with different dimensions, you should be able to reuse the code as is, as long as you provide the appropriate `DEPTH_VOID_VALUE_RR` and `PITCH_DIAMETER_RR` in robot radius units.
+
+We needed the `DEPTH_VOID_VALUE_RR` for our depth sensor to be able to tell whether it is looking at the object or off object. Any depth beyond `DEPTH_VOID_VALUE_RR` is considered off object. We have a code line `depth_patch = 0.003846 * depth_patch - 0.1569` where the magic numbers were calibrated to our depth camera so that the depth is in requisite robot radius units. If you are reusing the code, you will need your own magic numbers calibrated to your setup.
 
 ## Code changes
 
